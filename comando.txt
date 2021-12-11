@@ -1,0 +1,8 @@
+Obtener el estado actual de la subasta
+AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionState()});
+Inicializar Subasta
+AuctionsSCBA.deployed().then(function(instance){ return instance.auctionInit("MP151",0,100,1)});
+Agregar lotes
+AuctionsSCBA.deployed().then(function(instance){ return instance.auctionAddLot(1639177200,1640041200,350)});
+Obtener el saldo de la subasta
+AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionBalance()});
