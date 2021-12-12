@@ -5,6 +5,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /***
  * This contract implementas public auctions at Supreme Court in Buenos Aires Province @ Argetina.
+ * The auction process has an hybrid architecture, where the auction data and administrative flow is centralizad in a 
+ * traditional web application, and the push process and winner definition happens in the blockchain.
+ * 
+ * Author: Lic. Gustavo Perez Villar @ Buenos Aires - Argentina
  */
 
 contract AuctionsSCBA is Ownable {
@@ -12,11 +16,13 @@ contract AuctionsSCBA is Ownable {
     // Events
 
     event evt_bidderConfirmedInscription(address indexed sender, string message);
-    
+    event evt_auctionStart(uint timeStamp, string auctionID);
+    event evt_auctionCanceled(uint timeStamp, string auctionID, string cause);
+
     // Custom data types
 
     enum AuctionClass {REAL_STATE,MOBILE,MOBILE_REGISTER}
-    enum AuctionState {NO_INIT,INIT,LOT,STARTED,EXTENDED,ENDED}
+    enum AuctionState {NO_INIT,INIT,LOT,STARTED,EXTENDED,ENDED,CANCELED}
     struct AuctionLot {
         uint lotId_;
         uint startDate_;
@@ -33,6 +39,8 @@ contract AuctionsSCBA is Ownable {
         AuctionClass auctionClass_;
         uint guaranteeDeposit_;
         uint totalAuctionLots_;
+        uint startDate_;
+        uint endDate_;
     }
     struct Bidder {
         uint guaranteeDeposit_; // Deposited amount in wei for confirm auction inscription
@@ -54,14 +62,19 @@ contract AuctionsSCBA is Ownable {
     Auction private _auctionObject; // Instance of auction data
     mapping (address => Bidder) private _validBidders; // Valid registered bidders
     mapping (uint => AuctionTranches) private _tranchesPerLot;
-    uint private  _lastTrancheId; // Last valid received bid 
+    uint private  _lastTrancheId; // Last valid received bid
+    uint private  _lastTrancheValue;  
     address private _lastBidderAddress; // Last bidder with a valid bid accepted
+    uint private _confirmedBidders;
 
    // Constructor
 
     constructor () {
-      _auctionState = AuctionState.NO_INIT;
-      _lastTrancheId = 0;
+        // State variables initialization
+        _auctionState = AuctionState.NO_INIT;
+        _lastTrancheId = 0;
+        _lastTrancheValue = 0;
+        _confirmedBidders = 0;
     }
 
     // Receive functions
@@ -82,17 +95,22 @@ contract AuctionsSCBA is Ownable {
         string memory __auctionCode,
         AuctionClass __auctionClass, 
         uint __guaranteeDeposit, 
-        uint __totalAuctionLots
+        uint __totalAuctionLots,
+        uint __startDate,
+        uint __endDate 
     ) external onlyOwner  {
         require(_auctionState  == AuctionState.NO_INIT, "Auction already initialized");
+        require(block.timestamp < __startDate && (__startDate + 10 days) <= __endDate,"Invalid dates");
         _auctionState = AuctionState.INIT;
         _auctionObject.auctionCode_ = __auctionCode;
         _auctionObject.auctionClass_ = __auctionClass;
         _auctionObject.guaranteeDeposit_ = __guaranteeDeposit;
         _auctionObject.totalAuctionLots_ = __totalAuctionLots;
+        _auctionObject.startDate_ = __startDate;
+        _auctionObject.endDate_ = __endDate;
     }
 
-    function auctionAddLot(uint __startDate, uint __endDate, uint __baseValue) external onlyOwner {
+    function auctionAddLot(uint __baseValue) external onlyOwner {
         require(_auctionState == AuctionState.INIT || _auctionState == AuctionState.LOT ,"Auction is NOT initialized. Initialize auction before adding lots.");
         // Can't add more tha one lot if the auction class is Realstate
         if (_auctionObject.auctionClass_ == AuctionClass.REAL_STATE && _auctionLots.length == 1) { revert("Real State auctions only allows one lot"); }
@@ -100,12 +118,12 @@ contract AuctionsSCBA is Ownable {
         AuctionLot memory tmpLot;
         AuctionTranches memory tmpTranches;
         _auctionState = AuctionState.LOT;
-         _lastTrancheId += 1;
+        _lastTrancheId += 1;
         tmpLot.lotId_ = _auctionLots.length + 1;  //Start at lot 1
         tmpLot.extensionsCount_ = 0;
-        tmpLot.startDate_ = __startDate;
-        tmpLot.endDate_ = __endDate;
-        tmpLot.extendedEndDate_ = __endDate;
+        tmpLot.startDate_ = _auctionObject.startDate_;
+        tmpLot.endDate_ = _auctionObject.endDate_;
+        tmpLot.extendedEndDate_ = _auctionObject.endDate_;
         tmpLot.winnerTranche_ = 0;
         tmpLot.baseValue_ = __baseValue;
         tmpLot.lastTrancheId_ = 0;
@@ -115,6 +133,14 @@ contract AuctionsSCBA is Ownable {
         _tranchesPerLot[tmpTranches.trancheId_] = tmpTranches; // add tranche data to auctionTranches mapping;
     }  
 
+    function auctionStart() external onlyOwner {
+        _setAuctionStart();
+    }
+
+   function auctionCancel(string memory _cause) external onlyOwner {
+        _auctionCancelation(_cause);
+    }
+
     // Public Functions
 
     function getAuctionState() public view returns (AuctionState) {
@@ -122,10 +148,30 @@ contract AuctionsSCBA is Ownable {
     }
     
     // Get contract address blance (sum of all guarantee deposits for each confirmed bidder)
-    function getAuctionBalance() public view returns(uint) {
+    function getAuctionBalance() public view returns (uint) {
         return address(this).balance;
-    }
+    } 
     
+    function getConfirmedBiddders() public view returns (uint){
+        return _confirmedBidders;
+    }
+
+    function isBidderConfirmed(address _queryBidder) public view returns(bool) {     
+        return (_validBidders[_queryBidder].guaranteeDeposit_ > 0);
+    }
+
+    function getAuctionStartDate() public view returns(uint) {     
+        return _auctionObject.startDate_;
+    }
+
+    function getAuctionEndtDate() public view returns(uint) {     
+        return _auctionObject.endDate_;
+    }
+
+    function getAuctionClass() public view returns(AuctionClass) {     
+        return _auctionObject.auctionClass_;
+    }
+
     function bidderSetPreservelastBid(bool _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
@@ -159,11 +205,32 @@ contract AuctionsSCBA is Ownable {
         require((msg.sender != this.owner()));
 
         _validBidders[_bidderAddress] = _tmpBidder;
+        _confirmedBidders += 1;
+
         emit evt_bidderConfirmedInscription(_bidderAddress,"Confirmed bidder inscription.");
+    }
+
+    function _setAuctionStart() internal  {
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        require(block.timestamp >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside auction boundaries");
+        
+        if (_confirmedBidders == 0) {
+             _auctionCancelation("No confirmed bodders at auction start");
+        } else {
+            _auctionState = AuctionState.STARTED;
+            emit evt_auctionStart(block.timestamp, _auctionObject.auctionCode_);
+        }
+    }
+    
+    function _auctionCancelation(string memory _cause) internal {
+        require(_auctionState == AuctionState.STARTED && _confirmedBidders > 0,"The auction MUST be in STARTED state."); 
+        require(block.timestamp >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside auction boundaries");
+        
+        _auctionState = AuctionState.CANCELED;
+        emit evt_auctionCanceled(block.timestamp, _auctionObject.auctionCode_, _cause);
     }
 
     // Implementar funciones para obtener info de la subasta
     // Lotes
     // Tramos
-    // Postores inscriptos
 }

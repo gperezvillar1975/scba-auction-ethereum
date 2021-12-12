@@ -1,8 +1,38 @@
 Obtener el estado actual de la subasta
 AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionState()});
+
 Inicializar Subasta
-AuctionsSCBA.deployed().then(function(instance){ return instance.auctionInit("MP151",0,100,1)});
+AuctionsSCBA.deployed().then(function(instance){ return instance.auctionInit("MP151",0,100,1,1639310880,1640347680)});
+
 Agregar lotes
-AuctionsSCBA.deployed().then(function(instance){ return instance.auctionAddLot(1639177200,1640041200,350)});
+AuctionsSCBA.deployed().then(function(instance){ return instance.auctionAddLot(350)});
+
+Fijar Reserva de Postura
+AuctionsSCBA.deployed().then(function(instance){ return instance.bidderSetPreservelastBid(true)});
+
+Fijar Postura Maxima Secretra
+AuctionsSCBA.deployed().then(function(instance){ return instance.bidderSetMaximunSecretBid(300000)});
+
 Obtener el saldo de la subasta
 AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionBalance()});
+
+Obtener la cantidad de postores inscriptos
+AuctionsSCBA.deployed().then(function(instance){ return instance.getConfirmedBiddders()});
+
+Verifica si un postor esta inscripto
+AuctionsSCBA.deployed().then(function(instance){ return instance.isBidderConfirmed("0x46C56674b3e921d02125227Af9D9fF9E50DE1AA5")});
+
+Iniciar la SUBASTA 
+AuctionsSCBA.deployed().then(function(instance){ return instance.auctionStart()});
+
+Cancelar la SUBASTA 
+AuctionsSCBA.deployed().then(function(instance){ return instance.auctionCancel("Porque si")});
+
+Obtener Fecha de inicio
+AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionStartDate()});
+
+Obtener Fecha de finalizacion
+AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionEndtDate()});
+
+Obtener la clase de la subasta
+AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionClass()});
