@@ -33,6 +33,7 @@ contract AuctionsSCBA is Ownable {
         address winner_;
         uint winnerTranche_;
         uint lastTrancheId_;
+        uint actualTrancheId_;
     }
     struct Auction {
         string auctionCode_;
@@ -45,9 +46,8 @@ contract AuctionsSCBA is Ownable {
     struct Bidder {
         uint guaranteeDeposit_; // Deposited amount in wei for confirm auction inscription
         bool preserveLastBid_;  // If he wants to preserve his last bid in case the winner doesn't confirm the buy. 
-                               // if preserve bid is true, the bidder cannot withdraw founds after auction ending.
-        uint secretBidAmount_;  // top limit amount for wich the contract will push bids in behalf the bidder. 
-        uint lastBidderTrancheId_; // last correct bid amount for this bidder.
+                                // if preserve bid is true, the bidder cannot withdraw founds after auction ending.
+        uint[] lotSecretBid_;   // Secrets bid per lot. lotSecretBid_[lotId-1] = secretBid
     }
     struct AuctionTranches {
         uint trancheId_;
@@ -64,7 +64,6 @@ contract AuctionsSCBA is Ownable {
     Auction private _auctionObject; // Instance of auction data
     mapping (address => Bidder) private _validBidders; // Valid registered bidders
     mapping (uint => AuctionTranches) private _tranchesPerLot;
-    address private _lastBidderAddress; // Last bidder with a valid bid accepted
     uint private _confirmedBidders;
 
    // Constructor
@@ -165,6 +164,29 @@ contract AuctionsSCBA is Ownable {
         return _auctionObject.auctionClass_;
     }
 
+    function getActualTranche(uint _lotId) public view returns (uint,uint) {
+        uint retTrancheId_;
+        uint retValue_;
+
+        retTrancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
+        retValue_ = _tranchesPerLot[_lotId-1].trancheValue_;
+        
+        return (retTrancheId_, retValue_);
+    }
+
+    function getLastTranche(uint _lotId) public view returns (uint,uint,address) {
+        uint retTrancheId_;
+        uint retValue_;
+        address retBidder_;
+
+        retTrancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
+        retValue_ = _tranchesPerLot[_lotId-1].trancheValue_;
+        retBidder_ = _tranchesPerLot[_lotId-1].trancheBidder_;
+        
+        return (retTrancheId_, retValue_, retBidder_);
+    }
+
+
     function bidderSetPreservelastBid(bool _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
@@ -174,12 +196,12 @@ contract AuctionsSCBA is Ownable {
 
     }
 
-    function bidderSetMaximunSecretBid(uint _value) public {
+    function bidderSetMaximunSecretBid(uint _lotId, uint _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
         require((msg.sender != this.owner()));
         
-        _validBidders[msg.sender].secretBidAmount_ = _value;
+        _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _value;
 
     }
 
@@ -195,8 +217,6 @@ contract AuctionsSCBA is Ownable {
 
         _tmpBidder.guaranteeDeposit_ = _depositAmount;
         _tmpBidder.preserveLastBid_ = _preserveGuaranteeDeposit;
-        _tmpBidder.secretBidAmount_ = 0;
-        _tmpBidder.lastBidderTrancheId_ = 0;
         _validBidders[_bidderAddress] = _tmpBidder;
         _confirmedBidders += 1;
 
@@ -234,11 +254,8 @@ contract AuctionsSCBA is Ownable {
             _tmpTranche.trancheValue_ = _auctionLots[i].baseValue_;
             _tmpTranche.trancheConfirmed_ = false;
             _tranchesPerLot[i] = _tmpTranche;
+            _auctionLots[i].actualTrancheId_ = 1; 
         }
     }
 
-    // Implementar funciones para obtener info de la subasta
-    // - getLastUnconfirmedTranche(lotId) (returns id,value)
-    // - getLastConfirmedTranche(lotId) (returns id, value, bidder, timestap)
-    // Tramos
 }

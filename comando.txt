@@ -36,3 +36,9 @@ AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionEndtD
 
 Obtener la clase de la subasta
 AuctionsSCBA.deployed().then(function(instance){ return instance.getAuctionClass()});
+
+Obtener el tramo actual de un lote
+AuctionsSCBA.deployed().then(function(instance){ return instance.getActualTranche(1)});
+
+Obtener el ultimo tramo postado de un lote
+AuctionsSCBA.deployed().then(function(instance){ return instance.getLastTranche(1)});
