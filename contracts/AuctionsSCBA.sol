@@ -148,7 +148,8 @@ contract AuctionsSCBA is Ownable {
         return _confirmedBidders;
     }
 
-    function isBidderConfirmed(address _queryBidder) public view returns(bool) {     
+    function isBidderConfirmed(address _queryBidder) public view returns(bool) {   
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined.");   
         return (_validBidders[_queryBidder].guaranteeDeposit_ > 0);
     }
 
@@ -167,7 +168,7 @@ contract AuctionsSCBA is Ownable {
     function getActualTranche(uint _lotId) public view returns (uint,uint) {
         uint retTrancheId_;
         uint retValue_;
-
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         retTrancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
         retValue_ = _tranchesPerLot[_lotId-1].trancheValue_;
         
@@ -178,7 +179,7 @@ contract AuctionsSCBA is Ownable {
         uint retTrancheId_;
         uint retValue_;
         address retBidder_;
-
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         retTrancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
         retValue_ = _tranchesPerLot[_lotId-1].trancheValue_;
         retBidder_ = _tranchesPerLot[_lotId-1].trancheBidder_;
@@ -186,6 +187,10 @@ contract AuctionsSCBA is Ownable {
         return (retTrancheId_, retValue_, retBidder_);
     }
 
+    function getBidderMaximunSecretBid(uint _lotId, address _bidder) public view returns (uint) {
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined.");        
+        return _validBidders[_bidder].lotSecretBid_[_lotId-1];
+    }
 
     function bidderSetPreservelastBid(bool _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
@@ -199,16 +204,17 @@ contract AuctionsSCBA is Ownable {
     function bidderSetMaximunSecretBid(uint _lotId, uint _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
-        require((msg.sender != this.owner()));
+        require((msg.sender != this.owner()),"Function cannot be called by contract owner");
         
         _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _value;
-
+        
     }
 
     // Internal Functions
 
     function _confirmBidderInscription(address _bidderAddress, uint _depositAmount, bool _preserveGuaranteeDeposit) internal     {
         Bidder memory _tmpBidder;
+        uint _LotsLength = _auctionLots.length;
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require(_validBidders[_bidderAddress].guaranteeDeposit_ == 0,"Bidder already confirmed"); 
         require(_depositAmount >= _auctionObject.guaranteeDeposit_,"The deposit for confirm inscription MUST be equal or greater than teh guarantee deposit.");
@@ -217,7 +223,11 @@ contract AuctionsSCBA is Ownable {
 
         _tmpBidder.guaranteeDeposit_ = _depositAmount;
         _tmpBidder.preserveLastBid_ = _preserveGuaranteeDeposit;
+        // initialize Maximun Secret Bid array
         _validBidders[_bidderAddress] = _tmpBidder;
+        for (uint i=0; i<_LotsLength; i++) {
+            _validBidders[_bidderAddress].lotSecretBid_.push(0);
+        }
         _confirmedBidders += 1;
 
         emit evt_bidderConfirmedInscription(_bidderAddress,"Confirmed bidder inscription.");
