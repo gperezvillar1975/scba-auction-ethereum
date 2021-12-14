@@ -2,8 +2,17 @@ var assert = require('assert');
 const web3 = global.web3;
 const auctionContract = artifacts.require("AuctionsSCBA");
 
-var auctionStartDate = new Date('2021/12/15').getTime() / 1000; //secs
-var auctionEndDate = new Date('2021/12/26').getTime() / 1000; //secs
+var auctionStartDate = new Date();
+auctionStartDate.setSeconds(auctionStartDate.getSeconds() + 60);
+auctionStartDate.setTime(auctionStartDate.getTime() / 1000);
+
+var auctionEndDate = new Date()
+auctionEndDate.setSeconds(auctionEndDate.getSeconds() + 360) 
+auctionEndDate.setTime (auctionEndDate.getTime() / 1000);
+
+console.log(auctionStartDate)
+console.log(auctionEndDate)
+
 contract('auctionContract', (accounts) => {
     let instance;
     beforeEach('should setup the contract instance', async () => {
@@ -71,6 +80,16 @@ contract('auctionContract', (accounts) => {
         await instance.bidderSetMaximunSecretBid.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(2)),{from : accounts[1]});
         var secretBid = await instance.getBidderMaximunSecretBid(1,accounts[1]);
         assert.equal(web3.utils.fromWei(web3.utils.BN(secretBid)),2);
+      });
+      it("should set bidder 2 maximun secret bid in 3 ethers", async ()=> {
+        await instance.bidderSetMaximunSecretBid.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(3)),{from : accounts[2]});
+        var secretBid = await instance.getBidderMaximunSecretBid(1,accounts[2]);
+        assert.equal(web3.utils.fromWei(web3.utils.BN(secretBid)),3);
+      });
+      it("should set bidder 4 maximun secret bid in 1 ethers", async ()=> {
+        await instance.bidderSetMaximunSecretBid.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(1)),{from : accounts[4]});
+        var secretBid = await instance.getBidderMaximunSecretBid(1,accounts[4]);
+        assert.equal(web3.utils.fromWei(web3.utils.BN(secretBid)),1);
       });
   });
 
