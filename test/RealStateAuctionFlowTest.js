@@ -71,19 +71,20 @@ contract('auctionContract', (accounts) => {
         assert.equal(confirmedBidders.toNumber(),4);
       });
       it("should set bidder 1 maximun secret bid in 14 ethers", async ()=> {
-        await instance.bidderSetMaximunSecretBid.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(14)),{from : accounts[1]});
-        var secretBid = await instance.getBidderMaximunSecretBidTranche(1,accounts[1]);
-        assert.equal(web3.utils.BN(secretBid),9);
+        await instance.bidderSetMaximunSecretBidAmount.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(14)),{from : accounts[1]});
+        let secretBid = await instance.getBidderMaximunSecretBid(1,accounts[1]);
+        assert.equal(web3.utils.BN(secretBid[0]),8);
+        assert.equal(web3.utils.fromWei(web3.utils.BN(secretBid[1])),14)
       });
-      it("should set bidder 2 maximun secret bid in 17 ethers", async ()=> {
-        await instance.bidderSetMaximunSecretBid.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(17)),{from : accounts[2]});
-        var secretBid = await instance.getBidderMaximunSecretBidTranche(1,accounts[2]);
-        assert.equal(web3.utils.BN(secretBid),15);
+      it("should set bidder 2 maximun secret bid in 12 tranche", async ()=> {
+        await instance.bidderSetMaximunSecretBidTranche.sendTransaction(1,12,{from : accounts[2]});
+        let secretBid = await instance.getBidderMaximunSecretBid(1,accounts[2]);
+        assert.equal(web3.utils.BN(secretBid[0]),12);
       });
       it("should set bidder 4 maximun secret bid in 13 ethers", async ()=> {
-        await instance.bidderSetMaximunSecretBid.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(13)),{from : accounts[4]});
-        var secretBid = await instance.getBidderMaximunSecretBidTranche(1,accounts[4]);
-        assert.equal(web3.utils.BN(secretBid),7);
+        await instance.bidderSetMaximunSecretBidAmount.sendTransaction(1,web3.utils.toWei(web3.utils.toBN(13)),{from : accounts[4]});
+        let secretBid = await instance.getBidderMaximunSecretBid(1,accounts[4]);
+        assert.equal(web3.utils.BN(secretBid[0]),6);
       });
       it("should check lots quantity", async ()=> {
         var lots = web3.utils.BN(await instance.getLotQuantity());
@@ -95,7 +96,7 @@ contract('auctionContract', (accounts) => {
       });
       it("should check lots tranch 9 value", async ()=> {
         var varBase = web3.utils.fromWei(web3.utils.BN(await instance.getLotTrancheValue(1,9)));
-        console.log(varBase);
+        assert.equal(varBase, 14.5);
       });
   });
 

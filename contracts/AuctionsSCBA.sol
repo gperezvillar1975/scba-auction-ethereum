@@ -187,11 +187,13 @@ contract AuctionsSCBA is Ownable {
         return (retTrancheId_, retValue_, retBidder_);
     }
 
-    function getBidderMaximunSecretBidTranche(uint _lotId, address _bidder) public view returns (uint) {
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined.");        
-        return _validBidders[_bidder].lotSecretBid_[_lotId-1];
+    function getBidderMaximunSecretBid(uint _lotId, address _bidder) public view returns (uint,uint) {
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        uint _retTranche = _validBidders[_bidder].lotSecretBid_[_lotId-1];
+        uint _retAmount = _getLotTrancheValue(_lotId,_retTranche);
+        return (_retTranche, _retAmount);
     }
-
+        
     function getLotQuantity() public view returns (uint) {
         return _auctionLots.length;
     }
@@ -201,10 +203,8 @@ contract AuctionsSCBA is Ownable {
     }
 
     function getLotTrancheValue(uint _lotId, uint _trancheId) public view returns (uint) {
-        uint _baseValue = _auctionLots[_lotId-1].baseValue_;
-        uint _factor = _trancheId * 5;
-
-        return _baseValue + ((_baseValue * 100) / _factor);
+        
+        return _getLotTrancheValue(_lotId,_trancheId);
     }
 
     function bidderSetPreservelastBid(bool _value) public {
@@ -216,7 +216,7 @@ contract AuctionsSCBA is Ownable {
 
     }
 
-    function bidderSetMaximunSecretBid(uint _lotId, uint _value) public {
+    function bidderSetMaximunSecretBidAmount(uint _lotId, uint _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
         require((msg.sender != this.owner()),"Function cannot be called by contract owner");
@@ -226,11 +226,25 @@ contract AuctionsSCBA is Ownable {
         
         _fivePercent = ((_auctionLots[_lotId-1].baseValue_ / 100) * 5);
         _msbTranche = ((_value - _auctionLots[_lotId-1].baseValue_) / _fivePercent) + 1;
-        _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _msbTranche;
+        _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _msbTranche-1; // -1 for approaching lower tranche.
         
     }
-
+    function bidderSetMaximunSecretBidTranche(uint _lotId, uint _value) public {
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
+        require((msg.sender != this.owner()),"Function cannot be called by contract owner");
+        require(_value >= 1 ,"Tranche MUST be greater than zero."); 
+        
+        _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _value;
+    }
     // Internal Functions
+
+    function _getLotTrancheValue(uint _lotId, uint _trancheId) internal view returns (uint) {
+        uint _baseValue = _auctionLots[_lotId-1].baseValue_;
+        uint _factor = _trancheId * 5;
+
+        return _baseValue + ((_baseValue * _factor) / 100);
+    }
 
     function _confirmBidderInscription(address _bidderAddress, uint _depositAmount, bool _preserveGuaranteeDeposit) internal     {
         Bidder memory _tmpBidder;
