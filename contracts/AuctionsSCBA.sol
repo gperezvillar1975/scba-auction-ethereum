@@ -47,7 +47,7 @@ contract AuctionsSCBA is Ownable {
         uint guaranteeDeposit_; // Deposited amount in wei for confirm auction inscription
         bool preserveLastBid_;  // If he wants to preserve his last bid in case the winner doesn't confirm the buy. 
                                 // if preserve bid is true, the bidder cannot withdraw founds after auction ending.
-        uint[] lotSecretBid_;   // Secrets bid per lot. lotSecretBid_[lotId-1] = secretBid
+        uint[] lotSecretBid_;   // Secrets bid per lot. lotSecretBid_[lotId-1] = secretBid. Secret Bid is expressed as trancheid
     }
     struct AuctionTranches {
         uint trancheId_;
@@ -97,7 +97,7 @@ contract AuctionsSCBA is Ownable {
         uint __endDate 
     ) external onlyOwner  {
         require(_auctionState  == AuctionState.NO_INIT, "Auction already initialized");
-        require(block.timestamp < __startDate && (__startDate + 10 days) <= __endDate,"Invalid dates");
+        //require(block.timestamp < __startDate && (__startDate + 10 days) <= __endDate,"Invalid dates");
         _auctionState = AuctionState.INIT;
         _auctionObject.auctionCode_ = __auctionCode;
         _auctionObject.auctionClass_ = __auctionClass;
@@ -187,9 +187,24 @@ contract AuctionsSCBA is Ownable {
         return (retTrancheId_, retValue_, retBidder_);
     }
 
-    function getBidderMaximunSecretBid(uint _lotId, address _bidder) public view returns (uint) {
+    function getBidderMaximunSecretBidTranche(uint _lotId, address _bidder) public view returns (uint) {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined.");        
         return _validBidders[_bidder].lotSecretBid_[_lotId-1];
+    }
+
+    function getLotQuantity() public view returns (uint) {
+        return _auctionLots.length;
+    }
+
+    function getLotBaseValue(uint _lotId) public view returns (uint) {
+        return _auctionLots[_lotId-1].baseValue_;
+    }
+
+    function getLotTrancheValue(uint _lotId, uint _trancheId) public view returns (uint) {
+        uint _baseValue = _auctionLots[_lotId-1].baseValue_;
+        uint _factor = _trancheId * 5;
+
+        return _baseValue + ((_baseValue * 100) / _factor);
     }
 
     function bidderSetPreservelastBid(bool _value) public {
@@ -205,8 +220,13 @@ contract AuctionsSCBA is Ownable {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
         require((msg.sender != this.owner()),"Function cannot be called by contract owner");
+        require(_value > _auctionLots[_lotId-1].baseValue_,"Maximun Secret Bid MUST be greater than lot base value."); 
+        uint _msbTranche;
+        uint _fivePercent;
         
-        _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _value;
+        _fivePercent = ((_auctionLots[_lotId-1].baseValue_ / 100) * 5);
+        _msbTranche = ((_value - _auctionLots[_lotId-1].baseValue_) / _fivePercent) + 1;
+        _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _msbTranche;
         
     }
 
