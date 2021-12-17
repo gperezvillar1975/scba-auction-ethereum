@@ -98,5 +98,18 @@ contract('auctionContract', (accounts) => {
         var varBase = web3.utils.fromWei(web3.utils.BN(await instance.getLotTrancheValue(1,9)));
         assert.equal(varBase, 14.5);
       });
+      it("should start auction process at defined time", async ()=> {
+        let looping = true;
+        while (looping) {
+          var auctionDate = new Date().getTime();
+          var auctionDateTimeStamp = Math.floor(auctionDate / 1000) 
+          if (auctionDateTimeStamp >= auctionStartDateTimeStamp) {
+            await instance.auctionStart();
+            looping = false;
+          }
+        }
+        const valueState = await  instance.getAuctionState();
+        assert.equal(valueState.toNumber(),3);
+      });
   });
 
