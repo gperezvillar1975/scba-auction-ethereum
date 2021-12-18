@@ -110,12 +110,25 @@ contract('auctionContract', (accounts) => {
         const valueState = await instance.getAuctionState();
         assert.equal(valueState.toNumber(),3);
       });
+      it("Bidder 1 bid tranche 1", async ()=> {
+        await instance.bid.sendTransaction(1,1,{from : accounts[1]});
+      });
+      it("Bidder 2 bid tranche 2", async ()=> {
+        await instance.bid.sendTransaction(1,2,{from : accounts[2]});
+      });
+      it("Bidder 1 bid tranche 3", async ()=> {
+        await instance.bid.sendTransaction(1,3,{from : accounts[1]});
+      });
+      it("Bidder 3 bid tranche 4", async ()=> {
+        await instance.bid.sendTransaction(1,4,{from : accounts[3]});
+      });
+      it("Bidder 2 bid tranche 4", async ()=> {
+        await instance.bid.sendTransaction(1,4,{from : accounts[2]});
+      });
+
       it("Check last tranche after initial automatic push", async ()=> {
-        let retId
-        let retValue 
-        retId,retValue = await instance.getActualTranche(1);
-        console.log(redId);
-        console.log(redValue);
+        let retValue = await instance.getActualTranche(1);
+        console.log(web3.utils.BN(retValue[0]));
       });
   });
 

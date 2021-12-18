@@ -167,8 +167,11 @@ contract AuctionsSCBA is Ownable {
         uint retTrancheId_;
         uint retValue_;
         retTrancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
-        retValue_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheValue_;
-        
+        if (retTrancheId_ > 0 ) {
+            retValue_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheValue_;
+        } else {
+            retValue_ = _tranchesPerLot[_lotId-1][0].trancheValue_;
+        }
         return (retTrancheId_, retValue_);
     }
 
@@ -177,7 +180,11 @@ contract AuctionsSCBA is Ownable {
         uint retValue_;
         address retBidder_;
         retTrancheId_ = _auctionLots[_lotId-1].lastTrancheId_;
-        retValue_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheValue_;
+        if (retTrancheId_ > 0) {
+            retValue_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheValue_;
+        } else {
+            retValue_ = _tranchesPerLot[_lotId-1][0].trancheValue_;
+        }
         retBidder_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheBidder_;
         
         return (retTrancheId_, retValue_, retBidder_);
@@ -232,6 +239,10 @@ contract AuctionsSCBA is Ownable {
         
         _validBidders[msg.sender].lotSecretBid_[_lotId-1] = _value;
     }
+
+    function bid(uint _lotId, uint _trancheId) public {
+        _bid(msg.sender, _lotId, _trancheId);
+    } 
     // Internal Functions
 
     function _getLotTrancheValue(uint _lotId, uint _trancheId) internal view returns (uint) {
@@ -271,7 +282,7 @@ contract AuctionsSCBA is Ownable {
         } else {
             _auctionState = AuctionState.STARTED;
             _initTranches();
-            _secretBidPush();
+            //_secretBidPush();
 
             emit evt_auctionStart(block.timestamp, _auctionObject.auctionCode_);        }
     }
@@ -309,12 +320,14 @@ contract AuctionsSCBA is Ownable {
         bool _doBid=true;        
         while (_doBid) {
             _doBid=false;
-            for (uint x=0;x<_auctionLots.length-1;x++) {
-                for (uint i=0; i<_bidderList.length-1;i++) {
+            for (uint x=0;x<=_auctionLots.length-1;x++) {
+                for (uint i=0; i<=_bidderList.length-1;i++) {
                     // if the current iteration bidder has a maximun secret bid greater than auction current tranche and the bidder 
                     // is not the winner of te past tranch, the system pushes a bid in his name.
-                    if (_validBidders[_bidderList[i]].lotSecretBid_[x] > 0 && _validBidders[_bidderList[i]].lotSecretBid_[x] > _auctionLots[i].actualTrancheId_) {
-                        if ( _tranchesPerLot[x][_auctionLots[i].actualTrancheId_-1].trancheBidder_ != _bidderList[i] ) {
+                    if (_validBidders[_bidderList[i]].lotSecretBid_[x] > 0 && _validBidders[_bidderList[i]].lotSecretBid_[x] >= _auctionLots[x].actualTrancheId_) {
+                        uint _trancheIndex = 0;
+                        if (_auctionLots[i].actualTrancheId_ > 0) {_trancheIndex =_auctionLots[i].actualTrancheId_ -1;}
+                        if ( _tranchesPerLot[x][_trancheIndex].trancheBidder_ != _bidderList[i] ) {
                             _bid(_bidderList[i], x+1, _auctionLots[i].actualTrancheId_);
                             _doBid=true;
                         }
@@ -329,21 +342,24 @@ contract AuctionsSCBA is Ownable {
         require(block.timestamp <= _auctionObject.endDate_,"Auction end date reached");
         require(_tranchesPerLot[_lotId-1][_bidTranche-1].trancheConfirmed_ == false, "The tranche is already confirmed.");        
         require(_validBidders[_bidder].guaranteeDeposit_ > 0, "Message sender MUST be a valid bidder");
-        require(_tranchesPerLot[_lotId-1][_auctionLots[_lotId-1].lastTrancheId_-1].trancheBidder_ != _bidder, "The bidder already has pushed the last valid bid");
+        if (_auctionLots[_lotId-1].lastTrancheId_ > 0) {
+            require(_tranchesPerLot[_lotId-1][_auctionLots[_lotId-1].lastTrancheId_-1].trancheBidder_ != _bidder, "The bidder already has pushed the last valid bid");
+        }
         AuctionTranches memory _tmpTranche;
         
         // updates lot info
         _auctionLots[_lotId-1].lastTrancheId_ += 1;
         _auctionLots[_lotId-1].actualTrancheId_ += 1;
+
+        
         // updates tranche info
         _tranchesPerLot[_lotId-1][_bidTranche-1].trancheBidder_ = _bidder;
         _tranchesPerLot[_lotId-1][_bidTranche-1].trancheConfirmed_ = true;
         _tranchesPerLot[_lotId-1][_bidTranche-1].trancheBidTimestamp_ = block.timestamp;
 
         // Init next tranche
-
         _tmpTranche.trancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
-        _tmpTranche.trancheValue_ = _getLotTrancheValue(_lotId+1,_auctionLots[_lotId-1].actualTrancheId_);
+        _tmpTranche.trancheValue_ = _getLotTrancheValue(_lotId,_auctionLots[_lotId-1].actualTrancheId_);
         _tmpTranche.trancheConfirmed_ = false;
         _tranchesPerLot[_lotId-1].push(_tmpTranche);
 
