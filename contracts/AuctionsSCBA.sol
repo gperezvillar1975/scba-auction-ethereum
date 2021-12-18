@@ -18,6 +18,8 @@ contract AuctionsSCBA is Ownable {
     event evt_bidderConfirmedInscription(address indexed sender, string message);
     event evt_auctionStart(uint timeStamp, string auctionID);
     event evt_auctionCanceled(uint timeStamp, string auctionID, string cause);
+    event evt_maximunSecretBidBeaten(uint timeStamp, address beatenBidder);
+    event evt_bidConfirmed(uint timeStamp, uint lotId, uint trancheId, address _bidder);
 
     // Custom data types
 
@@ -31,7 +33,6 @@ contract AuctionsSCBA is Ownable {
         uint extendedEndDate_;
         uint extensionsCount_;
         address winner_;
-        uint winnerTranche_;
         uint lastTrancheId_;
         uint actualTrancheId_;
     }
@@ -54,7 +55,7 @@ contract AuctionsSCBA is Ownable {
         uint trancheValue_;
         address trancheBidder_;
         bool trancheConfirmed_;
-        uint trancheBidTimestamp;
+        uint trancheBidTimestamp_;
     }
 
     // State Variables
@@ -63,15 +64,14 @@ contract AuctionsSCBA is Ownable {
     AuctionState private _auctionState; // Actual auction state
     Auction private _auctionObject; // Instance of auction data
     mapping (address => Bidder) private _validBidders; // Valid registered bidders
-    mapping (uint => AuctionTranches) private _tranchesPerLot;
-    uint private _confirmedBidders;
+    mapping (uint => AuctionTranches[]) private _tranchesPerLot;
+    address[] private _bidderList;
 
    // Constructor
 
     constructor () {
         // State variables initialization
         _auctionState = AuctionState.NO_INIT;
-        _confirmedBidders = 0;
     }
 
     // Receive functions
@@ -119,7 +119,6 @@ contract AuctionsSCBA is Ownable {
         tmpLot.startDate_ = _auctionObject.startDate_;
         tmpLot.endDate_ = _auctionObject.endDate_;
         tmpLot.extendedEndDate_ = _auctionObject.endDate_;
-        tmpLot.winnerTranche_ = 0;
         tmpLot.baseValue_ = __baseValue;
         tmpLot.lastTrancheId_ = 0;
         _auctionLots.push(tmpLot); // Add lot to lot array
@@ -145,11 +144,10 @@ contract AuctionsSCBA is Ownable {
     } 
     
     function getConfirmedBiddders() public view returns (uint){
-        return _confirmedBidders;
+        return _bidderList.length;
     }
 
     function isBidderConfirmed(address _queryBidder) public view returns(bool) {   
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined.");   
         return (_validBidders[_queryBidder].guaranteeDeposit_ > 0);
     }
 
@@ -168,9 +166,8 @@ contract AuctionsSCBA is Ownable {
     function getActualTranche(uint _lotId) public view returns (uint,uint) {
         uint retTrancheId_;
         uint retValue_;
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         retTrancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
-        retValue_ = _tranchesPerLot[_lotId-1].trancheValue_;
+        retValue_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheValue_;
         
         return (retTrancheId_, retValue_);
     }
@@ -179,16 +176,14 @@ contract AuctionsSCBA is Ownable {
         uint retTrancheId_;
         uint retValue_;
         address retBidder_;
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
-        retTrancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
-        retValue_ = _tranchesPerLot[_lotId-1].trancheValue_;
-        retBidder_ = _tranchesPerLot[_lotId-1].trancheBidder_;
+        retTrancheId_ = _auctionLots[_lotId-1].lastTrancheId_;
+        retValue_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheValue_;
+        retBidder_ = _tranchesPerLot[_lotId-1][retTrancheId_-1].trancheBidder_;
         
         return (retTrancheId_, retValue_, retBidder_);
     }
 
     function getBidderMaximunSecretBid(uint _lotId, address _bidder) public view returns (uint,uint) {
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         uint _retTranche = _validBidders[_bidder].lotSecretBid_[_lotId-1];
         uint _retAmount = _getLotTrancheValue(_lotId,_retTranche);
         return (_retTranche, _retAmount);
@@ -208,7 +203,7 @@ contract AuctionsSCBA is Ownable {
     }
 
     function bidderSetPreservelastBid(bool _value) public {
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        require(_auctionState == AuctionState.LOT,"Preserve Last Bid - There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
         require((msg.sender != this.owner()));
         
@@ -217,7 +212,7 @@ contract AuctionsSCBA is Ownable {
     }
 
     function bidderSetMaximunSecretBidAmount(uint _lotId, uint _value) public {
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        require(_auctionState == AuctionState.LOT,"Set Maximun Secret Bid - There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
         require((msg.sender != this.owner()),"Function cannot be called by contract owner");
         require(_value > _auctionLots[_lotId-1].baseValue_,"Maximun Secret Bid MUST be greater than lot base value."); 
@@ -230,7 +225,7 @@ contract AuctionsSCBA is Ownable {
         
     }
     function bidderSetMaximunSecretBidTranche(uint _lotId, uint _value) public {
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        require(_auctionState == AuctionState.LOT,"Set MSB x Tranche - There must be at least one lot defined."); 
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
         require((msg.sender != this.owner()),"Function cannot be called by contract owner");
         require(_value >= 1 ,"Tranche MUST be greater than zero."); 
@@ -249,7 +244,7 @@ contract AuctionsSCBA is Ownable {
     function _confirmBidderInscription(address _bidderAddress, uint _depositAmount, bool _preserveGuaranteeDeposit) internal     {
         Bidder memory _tmpBidder;
         uint _LotsLength = _auctionLots.length;
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        require(_auctionState == AuctionState.LOT,"Confirm Inscription - There must be at least one lot defined."); 
         require(_validBidders[_bidderAddress].guaranteeDeposit_ == 0,"Bidder already confirmed"); 
         require(_depositAmount >= _auctionObject.guaranteeDeposit_,"The deposit for confirm inscription MUST be equal or greater than teh guarantee deposit.");
         require (block.timestamp <= _auctionObject.startDate_,"Bidder registration window expired.");
@@ -262,22 +257,23 @@ contract AuctionsSCBA is Ownable {
         for (uint i=0; i<_LotsLength; i++) {
             _validBidders[_bidderAddress].lotSecretBid_.push(0);
         }
-        _confirmedBidders += 1;
+        _bidderList.push(_bidderAddress);
 
         emit evt_bidderConfirmedInscription(_bidderAddress,"Confirmed bidder inscription.");
     }
 
     function _setAuctionStart() internal  {
-        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
+        require(_auctionState == AuctionState.LOT,"Auction Start - There must be at least one lot defined."); 
         require(block.timestamp >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside auction boundaries");
         
-        if (_confirmedBidders == 0) {
-             _auctionCancelation("No confirmed bodders at auction start");
+        if (_bidderList.length == 0) {
+             _auctionCancelation("No confirmed bidders at auction start");
         } else {
             _auctionState = AuctionState.STARTED;
             _initTranches();
-            emit evt_auctionStart(block.timestamp, _auctionObject.auctionCode_);
-        }
+            _secretBidPush();
+
+            emit evt_auctionStart(block.timestamp, _auctionObject.auctionCode_);        }
     }
     
     function _auctionCancelation(string memory _cause) internal {
@@ -297,9 +293,62 @@ contract AuctionsSCBA is Ownable {
             _tmpTranche.trancheId_ = i+1;
             _tmpTranche.trancheValue_ = _auctionLots[i].baseValue_;
             _tmpTranche.trancheConfirmed_ = false;
-            _tranchesPerLot[i] = _tmpTranche;
+            _tranchesPerLot[i].push(_tmpTranche);
             _auctionLots[i].actualTrancheId_ = 1; 
         }
+    }
+
+    /*
+    This function iterates over each bidder for every lot pushing using the Maximun Secret Bid commited before
+    auction start. The push order is related to the inscription order and the loops ends when no maximun secret bid
+    can beat the last valid automatic bid pushed.
+    */
+    function _secretBidPush() internal  {
+        require(_auctionState == AuctionState.STARTED,"The auction MUST be in STARTED state");
+        require(block.timestamp <= _auctionObject.endDate_,"Auction end date reached");
+        bool _doBid=true;        
+        while (_doBid) {
+            _doBid=false;
+            for (uint x=0;x<_auctionLots.length-1;x++) {
+                for (uint i=0; i<_bidderList.length-1;i++) {
+                    // if the current iteration bidder has a maximun secret bid greater than auction current tranche and the bidder 
+                    // is not the winner of te past tranch, the system pushes a bid in his name.
+                    if (_validBidders[_bidderList[i]].lotSecretBid_[x] > 0 && _validBidders[_bidderList[i]].lotSecretBid_[x] > _auctionLots[i].actualTrancheId_) {
+                        if ( _tranchesPerLot[x][_auctionLots[i].actualTrancheId_-1].trancheBidder_ != _bidderList[i] ) {
+                            _bid(_bidderList[i], x+1, _auctionLots[i].actualTrancheId_);
+                            _doBid=true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function _bid(address _bidder, uint _lotId, uint _bidTranche) internal {
+        require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED ,"The auction MUST be in STARTED or EXTENDED state");
+        require(block.timestamp <= _auctionObject.endDate_,"Auction end date reached");
+        require(_tranchesPerLot[_lotId-1][_bidTranche-1].trancheConfirmed_ == false, "The tranche is already confirmed.");        
+        require(_validBidders[_bidder].guaranteeDeposit_ > 0, "Message sender MUST be a valid bidder");
+        require(_tranchesPerLot[_lotId-1][_auctionLots[_lotId-1].lastTrancheId_-1].trancheBidder_ != _bidder, "The bidder already has pushed the last valid bid");
+        AuctionTranches memory _tmpTranche;
+        
+        // updates lot info
+        _auctionLots[_lotId-1].lastTrancheId_ += 1;
+        _auctionLots[_lotId-1].actualTrancheId_ += 1;
+        // updates tranche info
+        _tranchesPerLot[_lotId-1][_bidTranche-1].trancheBidder_ = _bidder;
+        _tranchesPerLot[_lotId-1][_bidTranche-1].trancheConfirmed_ = true;
+        _tranchesPerLot[_lotId-1][_bidTranche-1].trancheBidTimestamp_ = block.timestamp;
+
+        // Init next tranche
+
+        _tmpTranche.trancheId_ = _auctionLots[_lotId-1].actualTrancheId_;
+        _tmpTranche.trancheValue_ = _getLotTrancheValue(_lotId+1,_auctionLots[_lotId-1].actualTrancheId_);
+        _tmpTranche.trancheConfirmed_ = false;
+        _tranchesPerLot[_lotId-1].push(_tmpTranche);
+
+        // generates events
+        emit evt_bidConfirmed(block.timestamp, _lotId, _bidTranche, _bidder);
     }
 
 }

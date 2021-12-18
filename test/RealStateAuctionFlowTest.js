@@ -6,7 +6,6 @@ var auctionStartDate = new Date().getTime();
 var auctionStartDateTimeStamp = Math.floor(auctionStartDate / 1000) + 40
 var auctionEndDateTimeStamp = auctionStartDateTimeStamp + 300
 
-
 contract('auctionContract', (accounts) => {
     let instance;
     beforeEach('should setup the contract instance', async () => {
@@ -103,13 +102,20 @@ contract('auctionContract', (accounts) => {
         while (looping) {
           var auctionDate = new Date().getTime();
           var auctionDateTimeStamp = Math.floor(auctionDate / 1000) 
-          if (auctionDateTimeStamp >= auctionStartDateTimeStamp) {
+          if (auctionDateTimeStamp > auctionStartDateTimeStamp) {
             await instance.auctionStart();
             looping = false;
           }
         }
-        const valueState = await  instance.getAuctionState();
+        const valueState = await instance.getAuctionState();
         assert.equal(valueState.toNumber(),3);
+      });
+      it("Check last tranche after initial automatic push", async ()=> {
+        let retId
+        let retValue 
+        retId,retValue = await instance.getActualTranche(1);
+        console.log(redId);
+        console.log(redValue);
       });
   });
 
