@@ -43,6 +43,7 @@ contract AuctionsSCBA is Ownable {
         uint totalAuctionLots_;
         uint startDate_;
         uint endDate_;
+        uint extendedEndDate;
     }
     struct Bidder {
         uint guaranteeDeposit_; // Deposited amount in wei for confirm auction inscription
