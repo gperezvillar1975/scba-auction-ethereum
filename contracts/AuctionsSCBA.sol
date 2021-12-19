@@ -66,6 +66,7 @@ contract AuctionsSCBA is Ownable {
     mapping (address => Bidder) private _validBidders; // Valid registered bidders
     mapping (uint => AuctionTranches[]) private _tranchesPerLot;
     address[] private _bidderList;
+    mapping (address => mapping(uint => bool)) _bidderLotMSBBeaten; // True if bidder's maximun secret bed has bean beaten for a particular lot
 
    // Constructor
 
@@ -242,6 +243,7 @@ contract AuctionsSCBA is Ownable {
 
     function bid(uint _lotId, uint _trancheId) public {
         _bid(msg.sender, _lotId, _trancheId);
+        _secretBidPush();
     } 
     // Internal Functions
 
@@ -282,7 +284,7 @@ contract AuctionsSCBA is Ownable {
         } else {
             _auctionState = AuctionState.STARTED;
             _initTranches();
-            //_secretBidPush();
+            _secretBidPush();
 
             emit evt_auctionStart(block.timestamp, _auctionObject.auctionCode_);        }
     }
@@ -317,19 +319,31 @@ contract AuctionsSCBA is Ownable {
     function _secretBidPush() internal  {
         require(_auctionState == AuctionState.STARTED,"The auction MUST be in STARTED state");
         require(block.timestamp <= _auctionObject.endDate_,"Auction end date reached");
-        bool _doBid=true;        
-        while (_doBid) {
-            _doBid=false;
+        bool _doBid = true;        
+        while (_doBid == true) {
+            _doBid = false;
             for (uint x=0;x<=_auctionLots.length-1;x++) {
                 for (uint i=0; i<=_bidderList.length-1;i++) {
                     // if the current iteration bidder has a maximun secret bid greater than auction current tranche and the bidder 
                     // is not the winner of te past tranch, the system pushes a bid in his name.
                     if (_validBidders[_bidderList[i]].lotSecretBid_[x] > 0 && _validBidders[_bidderList[i]].lotSecretBid_[x] >= _auctionLots[x].actualTrancheId_) {
-                        uint _trancheIndex = 0;
-                        if (_auctionLots[i].actualTrancheId_ > 0) {_trancheIndex =_auctionLots[i].actualTrancheId_ -1;}
-                        if ( _tranchesPerLot[x][_trancheIndex].trancheBidder_ != _bidderList[i] ) {
-                            _bid(_bidderList[i], x+1, _auctionLots[i].actualTrancheId_);
-                            _doBid=true;
+                        if (_auctionLots[x].lastTrancheId_ == 0) {
+                            _bid(_bidderList[i], x+1, 1);
+                            _doBid = true;
+                            break;
+                        } else {
+                            if ( _tranchesPerLot[x][_auctionLots[x].lastTrancheId_ -1].trancheBidder_ != _bidderList[i] ) {
+                                _bid(_bidderList[i], x+1, _auctionLots[x].actualTrancheId_);
+                                _doBid=true;
+                                break;
+                            }
+                        }
+                    } else {
+                        if (_validBidders[_bidderList[i]].lotSecretBid_[x] >= _auctionLots[x].actualTrancheId_ &&
+                            _bidderLotMSBBeaten[_bidderList[i]][_auctionLots[x].actualTrancheId_] == false) {
+                            //Bidder's maximun secret bid has been beaten                            
+                            _bidderLotMSBBeaten[_bidderList[i]][_auctionLots[x].actualTrancheId_] = true;
+                            emit evt_maximunSecretBidBeaten(block.timestamp, _bidderList[i]);
                         }
                     }
                 }
@@ -345,6 +359,7 @@ contract AuctionsSCBA is Ownable {
         if (_auctionLots[_lotId-1].lastTrancheId_ > 0) {
             require(_tranchesPerLot[_lotId-1][_auctionLots[_lotId-1].lastTrancheId_-1].trancheBidder_ != _bidder, "The bidder already has pushed the last valid bid");
         }
+        require(_bidTranche == _auctionLots[_lotId-1].actualTrancheId_,"Invalid tranche");
         AuctionTranches memory _tmpTranche;
         
         // updates lot info
@@ -365,6 +380,7 @@ contract AuctionsSCBA is Ownable {
 
         // generates events
         emit evt_bidConfirmed(block.timestamp, _lotId, _bidTranche, _bidder);
+        
     }
 
 }
