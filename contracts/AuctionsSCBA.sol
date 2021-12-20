@@ -20,6 +20,7 @@ contract AuctionsSCBA is Ownable {
     event evt_auctionCanceled(uint timeStamp, string auctionID, string cause);
     event evt_maximunSecretBidBeaten(uint timeStamp, address beatenBidder);
     event evt_bidConfirmed(uint timeStamp, uint lotId, uint trancheId, address _bidder);
+    event evt_auctionLotExtended(uint timeStamp, uint lotId, uint newEndDate);
 
     // Custom data types
 
@@ -43,7 +44,7 @@ contract AuctionsSCBA is Ownable {
         uint totalAuctionLots_;
         uint startDate_;
         uint endDate_;
-        uint extendedEndDate;
+        uint extendedEndDate_;
     }
     struct Bidder {
         uint guaranteeDeposit_; // Deposited amount in wei for confirm auction inscription
@@ -107,6 +108,7 @@ contract AuctionsSCBA is Ownable {
         _auctionObject.totalAuctionLots_ = __totalAuctionLots;
         _auctionObject.startDate_ = __startDate;
         _auctionObject.endDate_ = __endDate;
+        _auctionObject.extendedEndDate_ = __endDate;
     }
 
     function auctionAddLot(uint __baseValue) external onlyOwner {
@@ -158,7 +160,7 @@ contract AuctionsSCBA is Ownable {
     }
 
     function getAuctionEndtDate() public view returns(uint) {     
-        return _auctionObject.endDate_;
+        return _auctionObject.extendedEndDate_;
     }
 
     function getAuctionClass() public view returns(AuctionClass) {     
@@ -209,6 +211,15 @@ contract AuctionsSCBA is Ownable {
     function getLotTrancheValue(uint _lotId, uint _trancheId) public view returns (uint) {
         
         return _getLotTrancheValue(_lotId,_trancheId);
+    }
+    
+    function getLotEndDate(uint _lotId) public view returns (uint) {
+        
+        return _auctionLots[_lotId-1].extendedEndDate_;
+    }
+    function getLotExtensionCount(uint _lotId) public view returns (uint) {
+        
+        return _auctionLots[_lotId-1].extensionsCount_;
     }
 
     function bidderSetPreservelastBid(bool _value) public {
@@ -278,7 +289,7 @@ contract AuctionsSCBA is Ownable {
 
     function _setAuctionStart() internal  {
         require(_auctionState == AuctionState.LOT,"Auction Start - There must be at least one lot defined."); 
-        require(block.timestamp >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside auction boundaries");
+        require((block.timestamp + 5 seconds) >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside auction boundaries");
         
         if (_bidderList.length == 0) {
              _auctionCancelation("No confirmed bidders at auction start");
@@ -292,7 +303,7 @@ contract AuctionsSCBA is Ownable {
     
     function _auctionCancelation(string memory _cause) internal {
         require(_auctionState != AuctionState.CANCELED,"The auction was previusly canceled."); 
-        require(block.timestamp <= _auctionObject.endDate_,"Auction end date reached");
+        require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
         
         _auctionState = AuctionState.CANCELED;
         emit evt_auctionCanceled(block.timestamp, _auctionObject.auctionCode_, _cause);
@@ -318,8 +329,8 @@ contract AuctionsSCBA is Ownable {
     can beat the last valid automatic bid pushed.
     */
     function _secretBidPush() internal  {
-        require(_auctionState == AuctionState.STARTED,"The auction MUST be in STARTED state");
-        require(block.timestamp <= _auctionObject.endDate_,"Auction end date reached");
+        require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED,"The auction MUST be in STARTED state");
+        require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
         bool _doBid = true;        
         while (_doBid == true) {
             _doBid = false;
@@ -354,7 +365,7 @@ contract AuctionsSCBA is Ownable {
 
     function _bid(address _bidder, uint _lotId, uint _bidTranche) internal {
         require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED ,"The auction MUST be in STARTED or EXTENDED state");
-        require(block.timestamp <= _auctionObject.endDate_,"Auction end date reached");
+        require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
         require(_tranchesPerLot[_lotId-1][_bidTranche-1].trancheConfirmed_ == false, "The tranche is already confirmed.");        
         require(_validBidders[_bidder].guaranteeDeposit_ > 0, "Message sender MUST be a valid bidder");
         if (_auctionLots[_lotId-1].lastTrancheId_ > 0) {
@@ -379,9 +390,27 @@ contract AuctionsSCBA is Ownable {
         _tmpTranche.trancheConfirmed_ = false;
         _tranchesPerLot[_lotId-1].push(_tmpTranche);
 
+        // check extension period
+        _extendAuction(_lotId);
+
         // generates events
         emit evt_bidConfirmed(block.timestamp, _lotId, _bidTranche, _bidder);
         
     }
+
+    function _extendAuction(uint _lotId) internal {
+        require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED ,"The auction MUST be in STARTED or EXTENDED state");
+        require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
+        uint extensionPeriod = (_auctionLots[_lotId-1].extendedEndDate_ - 3 minutes);
+
+        // the current bid should be in the last 3 minutes near the end to extend the auction.
+        if (block.timestamp >= extensionPeriod) {
+            _auctionLots[_lotId-1].extendedEndDate_ = ( _auctionLots[_lotId-1].endDate_ + 2 minutes);
+            _auctionLots[_lotId-1].extensionsCount_ += 1;
+            _auctionObject.extendedEndDate_ = ( _auctionLots[_lotId-1].endDate_ + 2 minutes);
+            emit evt_auctionLotExtended(block.timestamp, _lotId, _auctionObject.extendedEndDate_);
+        }
+    } 
+    
 
 }

@@ -4,8 +4,10 @@ const auctionContract = artifacts.require("AuctionsSCBA");
 
 var auctionStartDate = new Date().getTime();
 var auctionStartDateTimeStamp = Math.floor(auctionStartDate / 1000) + 40
-var auctionEndDateTimeStamp = auctionStartDateTimeStamp + 300
+var auctionEndDateTimeStamp = auctionStartDateTimeStamp + 120
 
+console.log(auctionStartDateTimeStamp)
+console.log(auctionEndDateTimeStamp)
 contract('auctionContract', (accounts) => {
     let instance;
     beforeEach('should setup the contract instance', async () => {
@@ -133,5 +135,10 @@ contract('auctionContract', (accounts) => {
         let retValue = await instance.getActualTranche(1);
         assert(web3.utils.BN(retValue[0]),16);
       });
+      it("Chek extended enddate", async ()=> {
+        console.log(await instance.getAuctionEndtDate());
+        console.log(web3.utils.BN(await instance.getLotExtensionCount(1)));
+      });
   });
+
 
