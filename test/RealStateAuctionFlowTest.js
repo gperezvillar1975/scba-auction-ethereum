@@ -136,9 +136,20 @@ contract('auctionContract', (accounts) => {
         assert(web3.utils.BN(retValue[0]),16);
       });
       it("Chek extended enddate", async ()=> {
-        console.log(await instance.getAuctionEndtDate());
-        console.log(web3.utils.BN(await instance.getLotExtensionCount(1)));
+        assert(web3.utils.BN(await instance.getLotExtensionCount(1)),1);
       });
+      it("delayed push bidder 1 tranche 16 for second auction extension", async ()=> {
+        let looping = true;
+        while (looping) {
+          var auctionDate = new Date().getTime();
+          var auctionDateTimeStamp = Math.floor(auctionDate / 1000) 
+          if (auctionDateTimeStamp > auctionEndDateTimeStamp - 10) {
+            await instance.bid.sendTransaction(1,16,{from : accounts[1]});
+            looping = false;
+          }
+        }
+      });
+      it("Chek extended enddate", async ()=> {
+        assert(web3.utils.BN(await instance.getLotExtensionCount(1)),2);
+      });  
   });
-
-
