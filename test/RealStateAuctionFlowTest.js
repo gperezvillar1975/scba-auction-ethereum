@@ -152,4 +152,37 @@ contract('auctionContract', (accounts) => {
       it("Chek extended enddate", async ()=> {
         assert(web3.utils.BN(await instance.getLotExtensionCount(1)),2);
       });  
+      it("should close the auction", async ()=> {
+        let looping = true;
+        while (looping) {
+          var auctionDate = new Date().getTime();
+          var auctionDateTimeStamp = Math.floor(auctionDate / 1000) 
+          if (auctionDateTimeStamp >= auctionEndDateTimeStamp + 125) {
+            await instance.auctionClose();
+            looping = false;
+          }
+        }
+      });
+      it("should withdraw founds for bidder 3", async ()=> {
+        await instance.withDraw.sendTransaction({from : accounts[3]});
+      });
+      it("should withdraw founds for bidder 4", async ()=> {
+        await instance.withDraw.sendTransaction({from : accounts[4]});
+      });
+      it("should withdraw founds for bidder 1", async ()=> {
+        await instance.withDraw.sendTransaction({from : accounts[1]});
+      });
+      it("should enable withdraw founds for bidder 1", async ()=> {
+        await instance.enableWithDraw(accounts[1]);
+      });
+      it("should enable withdraw founds for bidder 2", async ()=> {
+        await instance.enableWithDraw(accounts[2]);
+      });
+      it("should withdraw founds for bidder 1", async ()=> {
+        await instance.withDraw.sendTransaction({from : accounts[1]});
+      });
+      it("should withdraw founds for bidder 2", async ()=> {
+        await instance.withDraw.sendTransaction({from : accounts[2]});
+      });
+
   });

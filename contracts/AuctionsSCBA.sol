@@ -22,6 +22,7 @@ contract AuctionsSCBA is Ownable {
     event evt_bidConfirmed(uint timeStamp, uint lotId, uint trancheId, address _bidder);
     event evt_auctionLotExtended(uint timeStamp, uint lotId, uint newEndDate);
     event evt_auctionClosed(uint timeStamp, string auctionID);
+    event evt_bidderWithDraw(uint timeStamp, address bidderId, uint amount);
 
     // Custom data types
 
@@ -63,11 +64,11 @@ contract AuctionsSCBA is Ownable {
 
     // State Variables
 
-    AuctionLot[] private _auctionLots; // Auction lots array
+    AuctionLot[] private _auctionLots; // Auction lots array - Index starts in 0 - (_lotId -1)
     AuctionState private _auctionState; // Actual auction state
     Auction private _auctionObject; // Instance of auction data
     mapping (address => Bidder) private _validBidders; // Valid registered bidders
-    mapping (uint => AuctionTranches[]) private _tranchesPerLot;
+    mapping (uint => AuctionTranches[]) private _tranchesPerLot; // Index starts in 0 - ( _lotId -1 )
     address[] private _bidderList;
     mapping (address => mapping(uint => bool)) _bidderLotMSBBeaten; // True if bidder's maximun secret bed has bean beaten for a particular lot
 
@@ -139,6 +140,25 @@ contract AuctionsSCBA is Ownable {
 
    function auctionCancel(string memory _cause) external onlyOwner {
         _auctionCancelation(_cause);
+    }
+
+    function withDraw() external  {
+        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"The auction MUST be in ENDED or CANCELET ti withdraw founds");
+        require(_validBidders[msg.sender].guaranteeDeposit_ > 0, "Bidder NOT confirmed");
+        require(_validBidders[msg.sender].preserveLastBid_ == false, "Bidder cannot withdraw because last bid is reserved");
+        uint _withDrawAmount = _validBidders[msg.sender].guaranteeDeposit_;
+
+        _validBidders[msg.sender].guaranteeDeposit_ = 0;
+        payable(msg.sender).transfer(_withDrawAmount);
+        emit evt_bidderWithDraw(block.timestamp, msg.sender, _withDrawAmount);
+    }
+
+    function enableWithDraw( address _bidderAddress) external onlyOwner {
+        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"The auction MUST be in ENDED or CANCELET ti withdraw founds");
+        require(_validBidders[_bidderAddress].guaranteeDeposit_ > 0, "Bidder NOT confirmed or already has withdrawed founds");  
+        require(_validBidders[_bidderAddress].preserveLastBid_ == true, "Bidder already enabled to withdraw");              
+
+        _validBidders[_bidderAddress].preserveLastBid_ = false;
     }
 
     // Public Functions
@@ -423,11 +443,11 @@ contract AuctionsSCBA is Ownable {
 
         // Set the winner for each tranche and enable withdraw
         for (uint i=0;i<=_auctionLots.length-1;i++) {
-            _auctionLots[i].winner_ =_tranchesPerLot[_auctionLots[i].lotId_][_auctionLots[i].lastTrancheId_].trancheBidder_;            
+            _auctionLots[i].winner_ =_tranchesPerLot[i][_auctionLots[i].lastTrancheId_ -1].trancheBidder_;            
         }
         // Change auction state to CLOSED
         _auctionState = AuctionState.ENDED;
         // Emit close event
-        emit evt_auctionClosed(block.timestamp, _auctionObject.auctionCode_);        }
+        emit evt_auctionClosed(block.timestamp, _auctionObject.auctionCode_);        
     }
 }
