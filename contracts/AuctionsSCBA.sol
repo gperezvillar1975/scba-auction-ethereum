@@ -23,6 +23,7 @@ contract AuctionsSCBA is Ownable {
     event evt_auctionLotExtended(uint timeStamp, uint lotId, uint newEndDate);
     event evt_auctionClosed(uint timeStamp, string auctionID);
     event evt_bidderWithDraw(uint timeStamp, address bidderId, uint amount);
+    event evt_bidderEnabledToWithDraw(uint timeStamp, address bidderId);
 
     // Custom data types
 
@@ -159,6 +160,8 @@ contract AuctionsSCBA is Ownable {
         require(_validBidders[_bidderAddress].preserveLastBid_ == true, "Bidder already enabled to withdraw");              
 
         _validBidders[_bidderAddress].preserveLastBid_ = false;
+
+        emit evt_bidderEnabledToWithDraw(block.timestamp, _bidderAddress);
     }
 
     // Public Functions
