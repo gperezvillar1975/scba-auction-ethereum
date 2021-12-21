@@ -172,11 +172,11 @@ contract('auctionContract', (accounts) => {
       it("should withdraw founds for bidder 1", async ()=> {
         await instance.withDraw.sendTransaction({from : accounts[1]});
       });
-      it("should enable withdraw founds for bidder 1", async ()=> {
-        await instance.enableWithDraw(accounts[1]);
+      it("should enable withdraw founds for bidder 1", ()=> {
+        instance.enableWithDraw(accounts[1]);
       });
-      it("should enable withdraw founds for bidder 2", async ()=> {
-        await instance.enableWithDraw(accounts[2]);
+      it("should enable withdraw founds for bidder 2", ()=> {
+         instance.enableWithDraw(accounts[2]);
       });
       it("should withdraw founds for bidder 1", async ()=> {
         await instance.withDraw.sendTransaction({from : accounts[1]});
