@@ -19,5 +19,14 @@ function auctionInit(
         uint __totalAuctionLots,      // Number of auctions lot
         uint __startDate,             // Predefined start date
         uint __endDate                // Predefined end date ( 10 working days may exists between start and end date )
-    ) external onlyOwner  {
+    ) 
+
+## Auction Auction add lots
+
+Every lot inside the auction behaves like a self independent auction, the parent auctions ends when the last lot finishes the push process.
+
+function auctionAddLot(
+        uint __baseValue   // Minimun amount of WEI for starting the auction process, the first auction tranche is equal to the base value.
+    ) 
+   
 ```
