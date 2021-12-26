@@ -9,7 +9,7 @@ Review the [Architecture Diagram](https://github.com/gperezvillar1975/scba-aucti
 
 ## Auction init
 
-The auction init process is the first step to enable the bidder inscription and confirmation process, for running this function the auction should be in NO INIT state, wich is the starting state inmediatly after the auction contract is deployed.  
+The auction init process is the first step to enable the bidder inscription and confirmation process, for running this function the auction should be in NO INIT state, wich is the starting state inmediatly after the auction contract is deployed. Each bidder is free to push in one or more auction lots.
 
 ```
 function auctionInit(
@@ -33,3 +33,20 @@ function auctionAddLot(
     ) 
    
 ```
+## Auction state query functions
+
+- getAuctionState()
+- getAuctionBalance()
+- getConfirmedBiddders()
+- isBidderConfirmed(address _queryBidder)
+- getAuctionStartDate()
+- getAuctionEndtDate()
+- getAuctionClass()
+- getActualTranche(uint _lotId)
+- getLastTranche(uint _lotId)
+- getBidderMaximunSecretBid(uint _lotId, address _bidder)
+- getLotQuantity()
+- getLotBaseValue(uint _lotId)
+- getLotTrancheValue(uint _lotId, uint _trancheId)
+- getLotEndDate(uint _lotId)
+- getLotExtensionCount(uint _lotId)
