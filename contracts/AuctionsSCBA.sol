@@ -285,6 +285,7 @@ contract AuctionsSCBA is Ownable {
         _bid(msg.sender, _lotId, _trancheId);
         _secretBidPush();
     } 
+
     // Internal Functions
 
     function _getLotTrancheValue(uint _lotId, uint _trancheId) internal view returns (uint) {
@@ -333,6 +334,10 @@ contract AuctionsSCBA is Ownable {
         require(_auctionState != AuctionState.CANCELED,"The auction was previusly canceled."); 
         require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
         
+        // Enable all bidders to withdraw founds
+        for (uint i=0; i<=_bidderList.length-1;i++) {
+            _validBidders[_bidderList[i]].preserveLastBid_ = false;
+        }
         _auctionState = AuctionState.CANCELED;
         emit evt_auctionCanceled(block.timestamp, _auctionObject.auctionCode_, _cause);
     }
