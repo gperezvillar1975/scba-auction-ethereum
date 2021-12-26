@@ -115,7 +115,9 @@ function _bid(
 )
 
 ```
+## Auction end date extension
 
+at the auction INIT state you define the auction start and end dates, the contract copies those dates into each lot. So all the auction lots starts at the same time, but if a valid bid is received in the last 3 minutes of the lot duration, the contract extends the end date of that particular lot for a 10 minutes period after the predefined end date for that lot. This behavior repeats until no bid received during the last 3 minutes of the bid push for that lot. The auction end date is equated to the higher lot end date.
 
 ## Auction state query functions
 
@@ -140,3 +142,16 @@ function _bid(
 - getConfirmedBiddders()
 - isBidderConfirmed(address _queryBidder)
 - getBidderMaximunSecretBid(uint _lotId, address _bidder)
+
+## Auction events
+
+- evt_bidderConfirmedInscription(address indexed sender, string message);
+- evt_auctionStart(uint timeStamp, string auctionID);
+- evt_auctionCanceled(uint timeStamp, string auctionID, string cause);
+- evt_maximunSecretBidBeaten(uint timeStamp, address beatenBidder);
+- evt_bidConfirmed(uint timeStamp, uint lotId, uint trancheId, address _bidder);
+- evt_auctionLotExtended(uint timeStamp, uint lotId, uint newEndDate);
+- evt_auctionClosed(uint timeStamp, string auctionID);
+- evt_bidderWithDraw(uint timeStamp, address bidderId, uint amount);
+- evt_bidderEnabledToWithDraw(uint timeStamp, address bidderId);
+
