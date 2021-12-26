@@ -17,7 +17,6 @@ contract('auctionContract', (accounts) => {
         await instance.auctionInit("MP151",0,web3.utils.toWei(web3.utils.toBN(5)),1,auctionStartDateTimeStamp,auctionEndDateTimeStamp);
         const valueState = await  instance.getAuctionState()
         assert.equal(valueState.toNumber(),1);
-
       });
       it("should define a new lot", async ()=> {
         await instance.auctionAddLot(web3.utils.toWei(web3.utils.toBN(10)));

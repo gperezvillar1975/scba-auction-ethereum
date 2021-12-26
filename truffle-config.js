@@ -18,14 +18,10 @@
  *
  */
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
-//
-// const fs = require('fs');
-// const mnemonic = fs.readFileSync(".secret").toString().trim();
-
+const HDWalletProvider = require('@truffle/hdwallet-provider');
+const privateKey = "8d3c9281f6dd489294db376aa420d4004fb9a39350bf328b8942fe3e9d4eecc3";
 module.exports = {
   /**
-   * Networks define how you connect to your ethereum client and let you set the
    * defaults web3 uses to send transactions. If you don't specify one truffle
    * will spin up a development blockchain for you on port 9545 when you
    * run `develop` or `test`. You can ask a truffle command to use a specific
@@ -50,15 +46,20 @@ module.exports = {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 8545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
+    },
+    bfatest: {
+      host: "10.254.16.75",     // Localhost (default: none)
+      port: 8545,            // Standard Ethereum port (default: none)
+      network_id: "*",       // Any network (default: none)
+      provider: () => new HDWalletProvider(privateKey, "http://10.254.16.75:8545"),
+    },
+    lacchain: {
+      host: "119.8.76.58",     // Localhost (default: none)
+      port: 4545,              // Standard Ethereum port (default: none)
+      network_id: "648529",    // Any network (default: none)
+      provider: () => new HDWalletProvider(privateKey, "http://119.8.76.58:4545"),
+      gasPrice: 0,  // 20 gwei (in wei) (default: 100 gwei)
     }
-    // Another network with more advanced options...
-    // advanced: {
-    // port: 8777,             // Custom port
-    // network_id: 1342,       // Custom network
-    // gas: 8500000,           // Gas sent with each transaction (default: ~6700000)
-    // gasPrice: 20000000000,  // 20 gwei (in wei) (default: 100 gwei)
-    // websocket: true        // Enable EventEmitter interface for web3 (default: false)
-    // },
     // Useful for deploying to a public network.
     // NB: It's important to wrap the provider as a function.
     // ropsten: {
