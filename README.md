@@ -60,6 +60,12 @@ function bidderSetMaximunSecretBidTranche(uint _lotId, uint _value) // Set the m
 
 ```
 
+## Auction state functions
+
+- auctionStart()
+- auctionClose()
+- auctionCancel(string memory _cause)
+
 ## Auction state query functions
 
 - getAuctionState()
