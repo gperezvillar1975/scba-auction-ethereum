@@ -33,6 +33,33 @@ function auctionAddLot(
     ) 
    
 ```
+
+## Bidder confirmation process
+
+The bidder confirmation process enables bidder to push in any auction lot. The bidder is identified by his public address and it must confirm the auction guarantee deposit to participate.
+
+```
+function _confirmBidderInscription(
+    address _bidderAddress // Bidder public addres - Extracted from payable transaction call. msg.address
+    uint _depositAmount,   // Extracted from payable transaction call. msg.value
+    bool _preserveGuaranteeDeposit) // If the bidder wants to preserve his deposit in case that the winner bidder quit from the auction. In case hi decide to preserve de guarantee deposit the bidder could't withdraw founds at auction end.
+
+```
+
+## Set per bidder auction parameters 
+
+- Preserve last bid: Idem Preserve Guarantee deposit.
+- Maximun Secret Bid: The bidder can define an auction lot tranche or a amount of wei for what the system will push in bidder's name. It's like a authorization to push in the name of the bidder. When the maximun secret bid is beaten, the contract will emit an event.
+
+```
+
+function bidderSetPreservelastBid(bool _value)
+function bidderSetMaximunSecretBidAmount(uint _lotId, uint _value) // Set maximun secret bid with a specific amount of wei that the system will equate to the corresponding tranche.
+
+function bidderSetMaximunSecretBidTranche(uint _lotId, uint _value) // Set the maximun secrer bid with a specific lot tranche number.
+
+```
+
 ## Auction state query functions
 
 - getAuctionState()
