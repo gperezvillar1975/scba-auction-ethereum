@@ -66,6 +66,20 @@ function bidderSetMaximunSecretBidTranche(uint _lotId, uint _value) // Set the m
 - **auctionClose()**: On auction close, the contract will persist each auction lot winner and enable those bidders who didn't preserve the guarantee deposit  to withdraw the deposited amount in wei. The remaining bidders will be enabled to withdraw later by the judge.
 - **auctionCancel(string memory _cause)**: The cancel method will pause the contract forever. enabling all bidders to withdraw founds.
 
+## The bid push process
+
+The contract receipts bids between start and end dates, at auction starts it calculates the auction tranches, each tranche amount differs from the previous one in a 5% from the auction base value. Every received bid moves the auction to the nex available tranche. The bidder can invoke bid function to push for the current tranche in each auction lot.
+
+```
+function _bid(
+    address _bidder, // Message sender public addres.
+    uint _lotId,     // Auction Lot id
+    uint _bidTranche // Tranche id for the bid
+)
+
+```
+
+
 ## Auction state query functions
 
 - getAuctionState()
