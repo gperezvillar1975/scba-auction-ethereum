@@ -1,7 +1,44 @@
 # scba-auction-ethereum
 Smart contract for implementing auctions on the blockchain
 
-Review the [Architecture Diagram](https://github.com/gperezvillar1975/scba-auction-ethereum/blob/main/Architecture.txt)
+# Auction architecture
+
+```
+                                     ┌──────────────────┐
+                                     │   ASYNC          │
+                                     │   NOTIFICATIONS  │
+                                     │   SERVICE        │
+                                     │                  │
+                                     └──────────────────┘
+                                                ▲
+                                                │
+                                                │
+                                                │
+     ┌──────────────────────────────────────────┴─────────────────────────────────────────┐
+     │                         KAFKA TOPIC                                                │
+     │                                                                                    │
+     └────────────────────────────────────────────────────────────────────────────────────┘
+                                                ▲
+                                                │
+                                                │
+                                                │
+┌──────────────────────┐                ┌───────┴─────────┐                  ┌──────────────┐
+│                      │                │WebSocket Server │   Commands       │              │
+│                      │ ─────────────► │                 ├────────────────► │              │
+│    JavaScript        │                │Event Controller │                  │              │
+│                      │ ◄───────────── │                 │◄──────────────── │              │
+│                      │                └─────────────────┘   Events         │   Contract   │
+│    FrontEND          │                                                     │              │
+│                      │                                                     │              │
+│                      │                                                     │              │
+│                      │                                                     └──────────────┘
+│                      │                ┌─────────────────┐                         ▲
+│                      │                │                 │                         │
+│                      │ ◄───────────── │  REST API       │ ────────────────────────┘
+│                      │                │                 │      Commands
+└──────────────────────┘ ─────────────► └─────────────────┘
+
+```
 
 # Auction Lifecycle
 
