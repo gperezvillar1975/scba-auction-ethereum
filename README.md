@@ -37,16 +37,22 @@ function auctionAddLot(
 
 - getAuctionState()
 - getAuctionBalance()
-- getConfirmedBiddders()
-- isBidderConfirmed(address _queryBidder)
 - getAuctionStartDate()
 - getAuctionEndtDate()
 - getAuctionClass()
+
+## Auction lots query functions
+
 - getActualTranche(uint _lotId)
 - getLastTranche(uint _lotId)
-- getBidderMaximunSecretBid(uint _lotId, address _bidder)
 - getLotQuantity()
 - getLotBaseValue(uint _lotId)
 - getLotTrancheValue(uint _lotId, uint _trancheId)
 - getLotEndDate(uint _lotId)
 - getLotExtensionCount(uint _lotId)
+
+## Confirmed bidders query functions
+
+- getConfirmedBiddders()
+- isBidderConfirmed(address _queryBidder)
+- getBidderMaximunSecretBid(uint _lotId, address _bidder)
