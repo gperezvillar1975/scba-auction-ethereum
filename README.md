@@ -62,9 +62,9 @@ function bidderSetMaximunSecretBidTranche(uint _lotId, uint _value) // Set the m
 
 ## Auction state functions
 
-- auctionStart()
-- auctionClose()
-- auctionCancel(string memory _cause)
+- auctionStart(): On auction start the contract starts an automatic push between all the maximun secrets bid, until one of them wins the push. At this moment the remaining maximun secret bid continues pushing against manual bids.
+- auctionClose(): On auction close, the contract will persist each auction lot winner and enable those bidders who didn't preserve the guarantee deposit  to withdraw the deposited amount in wei. The remaining bidders will be enabled to withdraw later by the judge.
+- auctionCancel(string memory _cause): The cancel method will pause the contract forever. enabling all bidders to withdraw founds.
 
 ## Auction state query functions
 
