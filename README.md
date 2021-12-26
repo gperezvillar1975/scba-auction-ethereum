@@ -6,7 +6,7 @@ Review the [Architecture Diagram](https://github.com/gperezvillar1975/scba-aucti
 # Auction Lifecycle
 
 # Contract external callable methods
-
+```
 function auctionInit(
         string memory __auctionCode,  // Auction code assigned from the web portal.
         AuctionClass __auctionClass,  // Auction Class: 0 - Real State, 1 - Mobile Assets, registrable mobile assets
@@ -15,4 +15,4 @@ function auctionInit(
         uint __startDate,             // Predefined start date
         uint __endDate                // Predefined end date ( 10 working days may exists between start and end date )
     ) external onlyOwner  {
-
+```
