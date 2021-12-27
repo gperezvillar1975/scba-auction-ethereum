@@ -24,7 +24,7 @@ Smart contract for implementing auctions on the blockchain
                                                 │
 ┌──────────────────────┐                ┌───────┴─────────┐                  ┌──────────────┐
 │                      │                │WebSocket Server │   Commands       │              │
-│                      │ ─────────────► │                 ├────────────────► │              │
+│                      │                │                 ├────────────────► │              │
 │    JavaScript        │                │Event Controller │                  │              │
 │                      │ ◄───────────── │                 │◄──────────────── │              │
 │                      │                └─────────────────┘   Events         │   Contract   │
