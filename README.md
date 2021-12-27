@@ -11,8 +11,13 @@ sudo npm i @truffle/hdwallet-provider
 sudo npm install @openzeppelin/contracts
 
 ```
-- Customize truffle
+- Customize truffle-config.js to connect to your local ganache
+- Connect to truffle console
+- Run auction test
 
+```
+test ./tests/
+```
 # Auction architecture
 
 ```
