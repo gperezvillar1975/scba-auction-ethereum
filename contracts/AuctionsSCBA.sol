@@ -102,7 +102,7 @@ contract AuctionsSCBA is Ownable {
         uint __startDate,
         uint __endDate 
     ) external onlyOwner  {
-        require(_auctionState  == AuctionState.NO_INIT, "Auction already initialized");
+        require(_auctionState  == AuctionState.NO_INIT, "Already initialized");
         //require(block.timestamp < __startDate && (__startDate + 10 days) <= __endDate,"Invalid dates");
         _auctionState = AuctionState.INIT;
         _auctionObject.auctionCode_ = __auctionCode;
@@ -115,7 +115,7 @@ contract AuctionsSCBA is Ownable {
     }
 
     function auctionAddLot(uint __baseValue) external onlyOwner {
-        require(_auctionState == AuctionState.INIT || _auctionState == AuctionState.LOT ,"Auction is NOT initialized. Initialize auction before adding lots.");
+        require(_auctionState == AuctionState.INIT || _auctionState == AuctionState.LOT ,"NOT initialized");
         // Can't add more tha one lot if the auction class is Realstate
         if (_auctionObject.auctionClass_ == AuctionClass.REAL_STATE && _auctionLots.length == 1) { revert("Real State auctions only allows one lot"); }
         if (_auctionLots.length > _auctionObject.totalAuctionLots_) { revert("Cant't add more lots than definded in totalAuctionLots"); }
@@ -144,9 +144,9 @@ contract AuctionsSCBA is Ownable {
     }
 
     function withDraw() external  {
-        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"The auction MUST be in ENDED or CANCELET ti withdraw founds");
+        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"MUST be in ENDED or CANCELET ti withdraw founds");
         require(_validBidders[msg.sender].guaranteeDeposit_ > 0, "Bidder NOT confirmed");
-        require(_validBidders[msg.sender].preserveLastBid_ == false, "Bidder cannot withdraw because last bid is reserved");
+        require(_validBidders[msg.sender].preserveLastBid_ == false, "Bidder cannot withdraw");
         uint _withDrawAmount = _validBidders[msg.sender].guaranteeDeposit_;
 
         _validBidders[msg.sender].guaranteeDeposit_ = 0;
@@ -155,9 +155,9 @@ contract AuctionsSCBA is Ownable {
     }
 
     function enableWithDraw( address _bidderAddress) external onlyOwner {
-        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"The auction MUST be in ENDED or CANCELET ti withdraw founds");
-        require(_validBidders[_bidderAddress].guaranteeDeposit_ > 0, "Bidder NOT confirmed or already has withdrawed founds");  
-        require(_validBidders[_bidderAddress].preserveLastBid_ == true, "Bidder already enabled to withdraw");              
+        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"MUST be in ENDED or CANCELET ti withdraw founds");
+        require(_validBidders[_bidderAddress].guaranteeDeposit_ > 0, "Bidder NOT confirmed or already has withdrawed");  
+        require(_validBidders[_bidderAddress].preserveLastBid_ == true, "Already enabled to withdraw");              
 
         _validBidders[_bidderAddress].preserveLastBid_ = false;
 
@@ -317,7 +317,7 @@ contract AuctionsSCBA is Ownable {
     }
 
     function _setAuctionStart() internal  {
-        require(_auctionState == AuctionState.LOT,"Auction Start - There must be at least one lot defined."); 
+        require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
         require((block.timestamp + 5 seconds) >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside auction boundaries");
         
         if (_bidderList.length == 0) {
@@ -331,10 +331,9 @@ contract AuctionsSCBA is Ownable {
     }
     
     function _auctionCancelation(string memory _cause) internal {
-        require(_auctionState != AuctionState.CANCELED,"The auction was previusly canceled."); 
+        require(_auctionState != AuctionState.CANCELED,"Auction already canceled."); 
         require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
         
-        // Enable all bidders to withdraw founds
         for (uint i=0; i<=_bidderList.length-1;i++) {
             _validBidders[_bidderList[i]].preserveLastBid_ = false;
         }
@@ -343,7 +342,7 @@ contract AuctionsSCBA is Ownable {
     }
 
     function _initTranches() internal {
-        require(_auctionState == AuctionState.STARTED,"The auction MUST be in STARTED state");
+        require(_auctionState == AuctionState.STARTED,"MUST be in STARTED state");
         uint _LotsLength = _auctionLots.length;
         AuctionTranches memory _tmpTranche;
 
@@ -362,8 +361,8 @@ contract AuctionsSCBA is Ownable {
     can beat the last valid automatic bid pushed.
     */
     function _secretBidPush() internal  {
-        require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED,"The auction MUST be in STARTED state");
-        require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
+        require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED,"MUST be in STARTED state");
+        require(block.timestamp <= _auctionObject.extendedEndDate_,"end date reached");
         bool _doBid = true;        
         while (_doBid == true) {
             _doBid = false;
