@@ -42,6 +42,42 @@ Smart contract for implementing auctions on the blockchain
 
 # Auction Lifecycle
 
+```
+
+                   ┌───────────────────┐
+                   │                   │
+                   │    NO INIT        │
+                   └────────┬──────────┘
+                            │
+                            │ auctionInit()
+                   ┌────────▼──────────┐
+                   │                   │
+                   │     INIT          │
+                   └────────┬──────────┘
+                            │
+                            │ auctionAddLot()
+                   ┌────────▼──────────┐
+                   │                   │
+                   │    LOT            │              ┌────────────────────┐
+                   └────────┬──────────┤              │                    │
+                            ├──────────┴─────────────►│  Bidder Inscription│
+                            │ auctionStart()          │                    │
+                   ┌────────▼──────────┐              └────────────────────┘
+                   │                   │
+                   │     STARTED       │
+                   └─────────┬─────────┘
+                             │
+         bid                 │no bid for 3 minutes
+         ┌───────────────────┼─────────────────────────┐
+         │                   │                         │  auction Cancel()
+┌────────▼────────┐   ┌──────▼──────────┐   ┌──────────▼───────┐
+│                 │   │                 │   │                  │
+│    EXTENDED     │   │  CLOSED         │   │   CANCELED       │
+│                 │   │                 │   │                  │
+└─────────────────┘   └─────────────────┘   └──────────────────┘
+
+```
+
 # Contract external callable methods
 
 ## Auction init
