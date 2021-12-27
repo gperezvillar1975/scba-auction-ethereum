@@ -1,6 +1,18 @@
 # scba-auction-ethereum
 Smart contract for implementing auctions on the blockchain
 
+## Test the smart contract locally
+
+- Install local ganache & truffle
+- Install dependencies
+
+```
+sudo npm i @truffle/hdwallet-provider
+sudo npm install @openzeppelin/contracts
+
+```
+- Customize truffle
+
 # Auction architecture
 
 ```
