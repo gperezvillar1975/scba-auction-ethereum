@@ -5,6 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract JUSToken is ERC20 {
     constructor(uint256 _initialSupply) ERC20 ("JUSToken", "JUS") {
-      _mint(msg.sender, (_initialSupply ** 18 ));
+      _mint(msg.sender, _initialSupply);
     }
 }
