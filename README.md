@@ -16,7 +16,8 @@ sudo npm install @openzeppelin/contracts
 - Run auction test
 
 ```
-test ./tests/
+test ./test/RealStateAuctionFlowTest-Ganache.js
+
 ```
 # Auction architecture
 
