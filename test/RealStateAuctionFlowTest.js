@@ -1,6 +1,7 @@
 var assert = require('assert');
 const web3 = global.web3;
 const auctionContract = artifacts.require("AuctionsSCBA");
+const jusContract = artifacts.require("JUSToken");
 
 var auctionStartDate = new Date().getTime();
 var auctionStartDateTimeStamp = Math.floor(auctionStartDate / 1000) + 40
@@ -12,7 +13,20 @@ contract('auctionContract', (accounts) => {
     let instance;
     beforeEach('should setup the contract instance', async () => {
         instance = await auctionContract.deployed();
+        token = await jusContract.deployed();
     });
+    it("Transfer JUSTokens to bidders", async ()=> {    
+      await token.transfer.sendTransaction(accounts[1],web3.utils.toWei(web3.utils.toBN(1000)),{from : accounts[0]});
+      await token.transfer.sendTransaction(accounts[2],web3.utils.toWei(web3.utils.toBN(1000)),{from : accounts[0]});
+      await token.transfer.sendTransaction(accounts[3],web3.utils.toWei(web3.utils.toBN(1000)),{from : accounts[0]});
+      await token.transfer.sendTransaction(accounts[4],web3.utils.toWei(web3.utils.toBN(1000)),{from : accounts[0]});
+    });        
+    it("Bidders allowance to Auction Contract", async ()=> {    
+      await token.approve.sendTransaction(instance.address,web3.utils.toWei(web3.utils.toBN(200)),{from : accounts[1]});
+      await token.approve.sendTransaction(instance.address,web3.utils.toWei(web3.utils.toBN(200)),{from : accounts[2]});
+      await token.approve.sendTransaction(instance.address,web3.utils.toWei(web3.utils.toBN(200)),{from : accounts[3]});
+      await token.approve.sendTransaction(instance.address,web3.utils.toWei(web3.utils.toBN(200)),{from : accounts[4]});
+    });        
     it("should initialize a new auction", async ()=> {
         await instance.auctionInit("MP151",0,web3.utils.toWei(web3.utils.toBN(5)),1,auctionStartDateTimeStamp,auctionEndDateTimeStamp);
         const valueState = await  instance.getAuctionState()
