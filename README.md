@@ -130,10 +130,8 @@ function auctionAddLot(
 The bidder confirmation process enables bidder to push in any auction lot. The bidder is identified by his public address and it must confirm the auction guarantee deposit to participate.
 
 ```
-function _confirmBidderInscription(
-    address _bidderAddress // Bidder public addres - Extracted from payable transaction call. msg.address
-    uint _depositAmount,   // Extracted from payable transaction call. msg.value
-    bool _preserveGuaranteeDeposit) // If the bidder wants to preserve his deposit in case that the winner bidder quit from the auction. In case hi decide to preserve de guarantee deposit the bidder could't withdraw founds at auction end.
+function confirmBidderInscription(
+    bool _preserveGuaranteeDeposit) // If the bidder wants to preserve his deposit in case that the winner bidder quit from the auction. In case hi decide to preserve                                        the guarantee deposit the bidder could't withdraw founds at auction end.
 
 ```
 
@@ -206,6 +204,5 @@ at the auction INIT state you define the auction start and end dates, the contra
 - evt_bidConfirmed(uint timeStamp, uint lotId, uint trancheId, address _bidder);
 - evt_auctionLotExtended(uint timeStamp, uint lotId, uint newEndDate);
 - evt_auctionClosed(uint timeStamp, string auctionID);
-- evt_bidderWithDraw(uint timeStamp, address bidderId, uint amount);
 - evt_bidderEnabledToWithDraw(uint timeStamp, address bidderId);
 
