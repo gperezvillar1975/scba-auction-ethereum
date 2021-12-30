@@ -45,28 +45,28 @@ contract('auctionContract', (accounts) => {
       });
 
       it("should confirm bidder 1 inscription", async ()=> {
-        await instance.confirmBidderInscription.sendTransaction(true,{from : accounts[1],value: web3.utils.toWei(web3.utils.toBN(10)) });
+        await instance.confirmBidderInscription.sendTransaction(true,{from : accounts[1]});
         var confirmedBidders = await instance.getConfirmedBiddders();
         assert.equal(confirmedBidders.toNumber(),1)
         var testInscription = await instance.isBidderConfirmed(accounts[1]);
         assert.equal(testInscription,true);
       });
       it("should confirm bidder 2 inscription", async ()=> {
-        await instance.confirmBidderInscription.sendTransaction(true,{from : accounts[2],value: web3.utils.toWei(web3.utils.toBN(10)) });
+        await instance.confirmBidderInscription.sendTransaction(true,{from : accounts[2]});
         var confirmedBidders = await instance.getConfirmedBiddders();
         assert.equal(confirmedBidders.toNumber(),2)
         var testInscription = await instance.isBidderConfirmed(accounts[2]);
         assert.equal(testInscription,true);
       });
       it("should confirm bidder 3 inscription", async ()=> {
-        await instance.confirmBidderInscription.sendTransaction(false,{from : accounts[3],value: web3.utils.toWei(web3.utils.toBN(10)) });
+        await instance.confirmBidderInscription.sendTransaction(false,{from : accounts[3]});
         var confirmedBidders = await instance.getConfirmedBiddders();
         assert.equal(confirmedBidders.toNumber(),3)
         var testInscription = await instance.isBidderConfirmed(accounts[3]);
         assert.equal(testInscription,true);
       });
       it("should confirm bidder 4 inscription", async ()=> {
-        await instance.confirmBidderInscription.sendTransaction(false,{from : accounts[4],value: web3.utils.toWei(web3.utils.toBN(10)) });
+        await instance.confirmBidderInscription.sendTransaction(false,{from : accounts[4]});
         var confirmedBidders = await instance.getConfirmedBiddders();
         assert.equal(confirmedBidders.toNumber(),4)
         var testInscription = await instance.isBidderConfirmed(accounts[4]);
@@ -76,9 +76,9 @@ contract('auctionContract', (accounts) => {
         var testInscription = await instance.isBidderConfirmed(accounts[5]);
         assert.equal(testInscription,false);
       });
-      it("should verify correct contract balance in 40 ether", async ()=> {
+      it("should verify correct contract balance in 20 JUS", async ()=> {
         var auctionBalance = await instance.getAuctionBalance();
-        assert.equal(web3.utils.fromWei(web3.utils.BN(auctionBalance)),40);
+        assert.equal(web3.utils.fromWei(web3.utils.BN(auctionBalance)),20);
       });
       it("should verify confirmed bidders quantity", async ()=> {
         var confirmedBidders = await instance.getConfirmedBiddders();
@@ -177,25 +177,19 @@ contract('auctionContract', (accounts) => {
         }
       });
       it("should withdraw founds for bidder 3", async ()=> {
-        await instance.withDraw.sendTransaction({from : accounts[3]});
+        await token.transferFrom.sendTransaction(instance.address,accounts[3],web3.utils.toWei(web3.utils.toBN(5)),{from : accounts[3]});
       });
       it("should withdraw founds for bidder 4", async ()=> {
-        await instance.withDraw.sendTransaction({from : accounts[4]});
+        await token.transferFrom.sendTransaction(instance.address,accounts[4],web3.utils.toWei(web3.utils.toBN(5)),{from : accounts[4]});
       });
       it("should withdraw founds for bidder 1", async ()=> {
-        await instance.withDraw.sendTransaction({from : accounts[1]});
-      });
-      it("should enable withdraw founds for bidder 1", ()=> {
-        instance.enableWithDraw(accounts[1]);
+        await token.transferFrom.sendTransaction(instance.address,accounts[1],web3.utils.toWei(web3.utils.toBN(5)),{from : accounts[1]});
       });
       it("should enable withdraw founds for bidder 2", ()=> {
          instance.enableWithDraw(accounts[2]);
       });
-      it("should withdraw founds for bidder 1", async ()=> {
-        await instance.withDraw.sendTransaction({from : accounts[1]});
-      });
       it("should withdraw founds for bidder 2", async ()=> {
-        await instance.withDraw.sendTransaction({from : accounts[2]});
+        await token.transferFrom.sendTransaction(instance.address,accounts[2],web3.utils.toWei(web3.utils.toBN(5)),{from : accounts[2]});
       });
 
   });
