@@ -23,7 +23,7 @@ contract AuctionsSCBA is Ownable {
     event evt_bidConfirmed(uint timeStamp, uint lotId, uint trancheId, address _bidder);
     event evt_auctionLotExtended(uint timeStamp, uint lotId, uint newEndDate);
     event evt_auctionClosed(uint timeStamp, string auctionID);
-    event evt_bidderWithDraw(uint timeStamp, address bidderId, uint amount);
+    event evt_lotWinner(uint timeStamp, uint lotId, address bidderId);
     event evt_bidderEnabledToWithDraw(uint timeStamp, address bidderId);
 
     // Custom data types
@@ -54,7 +54,8 @@ contract AuctionsSCBA is Ownable {
         uint guaranteeDeposit_; // Deposited amount in wei for confirm auction inscription
         bool preserveLastBid_;  // If he wants to preserve his last bid in case the winner doesn't confirm the buy. 
                                 // if preserve bid is true, the bidder cannot withdraw founds after auction ending.
-        uint[] lotSecretBid_;   // Secrets bid per lot. lotSecretBid_[lotId-1] = secretBid. Secret Bid is expressed as trancheid
+        uint[] lotSecretBid_;   // Secrets bid per lot. lotSecretBid_[lotId-1] = secretBid. Secret Bid is expressed as trancheid.
+        bool lotWinner_;         // True if the bidder has win one or more lots. Used for wnebale withdraw founds.
     }
     struct AuctionTranches {
         uint trancheId_;
@@ -81,19 +82,7 @@ contract AuctionsSCBA is Ownable {
         _auctionState = AuctionState.NO_INIT;
         _token = _jusToken;
     }
-
-    // Receive functions
-
-    function confirmBidderInscription(bool _preserveGuranteeDeposit) external payable {
-        _confirmBidderInscription(msg.sender, msg.value, _preserveGuranteeDeposit);
-    }
-
-    // Fallback function
-
-    receive() external payable {
-       _confirmBidderInscription(msg.sender, msg.value,false); 
-    } 
-
+ 
     // External Functions
 
     function auctionInit(
@@ -119,8 +108,8 @@ contract AuctionsSCBA is Ownable {
     function auctionAddLot(uint __baseValue) external onlyOwner {
         require(_auctionState == AuctionState.INIT || _auctionState == AuctionState.LOT ,"NOT initialized");
         // Can't add more tha one lot if the auction class is Realstate
-        if (_auctionObject.auctionClass_ == AuctionClass.REAL_STATE && _auctionLots.length == 1) { revert("Auctions only allows one lot"); }
-        if (_auctionLots.length > _auctionObject.totalAuctionLots_) { revert("Cant't add more lots"); }
+        if (_auctionObject.auctionClass_ == AuctionClass.REAL_STATE && _auctionLots.length == 1) { revert("Only allows one lot"); }
+        if (_auctionLots.length > _auctionObject.totalAuctionLots_) { revert("Cant't add lots"); }
         AuctionLot memory tmpLot;
         _auctionState = AuctionState.LOT;
         tmpLot.lotId_ = _auctionLots.length + 1;  //Start at lot 1
@@ -132,6 +121,10 @@ contract AuctionsSCBA is Ownable {
         tmpLot.lastTrancheId_ = 0;
         _auctionLots.push(tmpLot); // Add lot to lot array
     }  
+
+    function confirmBidderInscription(bool _preserveGuranteeDeposit) external  {
+        _confirmBidderInscription(msg.sender, _auctionObject.guaranteeDeposit_, _preserveGuranteeDeposit);
+    }
 
     function auctionStart() external onlyOwner {
         _setAuctionStart();
@@ -145,25 +138,8 @@ contract AuctionsSCBA is Ownable {
         _auctionCancelation(_cause);
     }
 
-    function withDraw() external  {
-        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"MUST be in ENDED or CANCELET to withdraw");
-        require(_validBidders[msg.sender].guaranteeDeposit_ > 0, "Bidder NOT confirmed");
-        require(_validBidders[msg.sender].preserveLastBid_ == false, "Bidder cannot withdraw");
-        uint _withDrawAmount = _validBidders[msg.sender].guaranteeDeposit_;
-
-        _validBidders[msg.sender].guaranteeDeposit_ = 0;
-        payable(msg.sender).transfer(_withDrawAmount);
-        emit evt_bidderWithDraw(block.timestamp, msg.sender, _withDrawAmount);
-    }
-
     function enableWithDraw( address _bidderAddress) external onlyOwner {
-        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"MUST be in ENDED or CANCELED ti withdraw founds");
-        require(_validBidders[_bidderAddress].guaranteeDeposit_ > 0, "Bidder NOT confirmed or already has withdrawed");  
-        require(_validBidders[_bidderAddress].preserveLastBid_ == true, "Already enabled to withdraw");              
-
-        _validBidders[_bidderAddress].preserveLastBid_ = false;
-
-        emit evt_bidderEnabledToWithDraw(block.timestamp, _bidderAddress);
+        _enableWithDraw(_bidderAddress);
     }
 
     // Public Functions
@@ -174,7 +150,7 @@ contract AuctionsSCBA is Ownable {
     
     // Get contract address blance (sum of all guarantee deposits for each confirmed bidder)
     function getAuctionBalance() public view returns (uint) {
-        return address(this).balance;
+        return _token.balanceOf(address(this));
     } 
     
     function getConfirmedBiddders() public view returns (uint){
@@ -254,7 +230,7 @@ contract AuctionsSCBA is Ownable {
 
     function bidderSetPreservelastBid(bool _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
-        require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
+        require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder not confirmed"); 
         require((msg.sender != this.owner()));
         
         _validBidders[msg.sender].preserveLastBid_ = _value;
@@ -263,7 +239,7 @@ contract AuctionsSCBA is Ownable {
 
     function bidderSetMaximunSecretBidAmount(uint _lotId, uint _value) public {
         require(_auctionState == AuctionState.LOT,"There must be at least one lot defined."); 
-        require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
+        require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder not confirmed"); 
         require((msg.sender != this.owner()),"Cannot be called by contract owner");
         require(_value > _auctionLots[_lotId-1].baseValue_,"MUST be greater than lot base value."); 
         uint _msbTranche;
@@ -276,7 +252,7 @@ contract AuctionsSCBA is Ownable {
     }
     function bidderSetMaximunSecretBidTranche(uint _lotId, uint _value) public {
         require(_auctionState == AuctionState.LOT,"Must be at least one lot defined."); 
-        require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder is not confirmed"); 
+        require(_validBidders[msg.sender].guaranteeDeposit_ > 0,"Bidder not confirmed"); 
         require((msg.sender != this.owner()),"Cannot be called by contract owner");
         require(_value >= 1 ,"Tranche MUST be greater than zero."); 
         
@@ -305,7 +281,9 @@ contract AuctionsSCBA is Ownable {
         require(_depositAmount >= _auctionObject.guaranteeDeposit_,"MUST be >= the guarantee deposit.");
         require (block.timestamp <= _auctionObject.startDate_,"Bidder registration window expired.");
         require((msg.sender != this.owner()));
+        require(_token.allowance(_bidderAddress, address(this)) >= _depositAmount,"Check bidder allowance");
 
+        _token.transferFrom(_bidderAddress, address(this),_depositAmount);
         _tmpBidder.guaranteeDeposit_ = _depositAmount;
         _tmpBidder.preserveLastBid_ = _preserveGuaranteeDeposit;
         // initialize Maximun Secret Bid array
@@ -315,15 +293,15 @@ contract AuctionsSCBA is Ownable {
         }
         _bidderList.push(_bidderAddress);
 
-        emit evt_bidderConfirmedInscription(_bidderAddress,"Confirmed bidder inscription.");
+        emit evt_bidderConfirmedInscription(_bidderAddress,"Confirmed inscription.");
     }
 
     function _setAuctionStart() internal  {
         require(_auctionState == AuctionState.LOT,"Must be at least one lot defined."); 
-        require((block.timestamp + 5 seconds) >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside auction boundaries");
+        require((block.timestamp + 5 seconds) >= _auctionObject.startDate_ && block.timestamp <= _auctionObject.endDate_,"Actual time outside boundaries");
         
         if (_bidderList.length == 0) {
-             _auctionCancelation("No confirmed bidders at start");
+             _auctionCancelation("No bidders at start");
         } else {
             _auctionState = AuctionState.STARTED;
             _initTranches();
@@ -337,7 +315,7 @@ contract AuctionsSCBA is Ownable {
         require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
         
         for (uint i=0; i<=_bidderList.length-1;i++) {
-            _validBidders[_bidderList[i]].preserveLastBid_ = false;
+            _enableWithDraw(_bidderList[i]);
         }
         _auctionState = AuctionState.CANCELED;
         emit evt_auctionCanceled(block.timestamp, _auctionObject.auctionCode_, _cause);
@@ -399,11 +377,11 @@ contract AuctionsSCBA is Ownable {
 
     function _bid(address _bidder, uint _lotId, uint _bidTranche) internal {
         require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED ,"MUST be in STARTED or EXTENDED state");
-        require(block.timestamp <= _auctionObject.extendedEndDate_,"Auction end date reached");
-        require(_tranchesPerLot[_lotId-1][_bidTranche-1].trancheConfirmed_ == false, "Tranche is already confirmed.");        
+        require(block.timestamp <= _auctionObject.extendedEndDate_,"End date reached");
+        require(_tranchesPerLot[_lotId-1][_bidTranche-1].trancheConfirmed_ == false, "Tranche already confirmed.");        
         require(_validBidders[_bidder].guaranteeDeposit_ > 0, "MUST be a valid bidder");
         if (_auctionLots[_lotId-1].lastTrancheId_ > 0) {
-            require(_tranchesPerLot[_lotId-1][_auctionLots[_lotId-1].lastTrancheId_-1].trancheBidder_ != _bidder, "Bidder already has pushed");
+            require(_tranchesPerLot[_lotId-1][_auctionLots[_lotId-1].lastTrancheId_-1].trancheBidder_ != _bidder, "Bidder already pushed");
         }
         require(_bidTranche == _auctionLots[_lotId-1].actualTrancheId_,"Invalid tranche");
         AuctionTranches memory _tmpTranche;
@@ -448,15 +426,34 @@ contract AuctionsSCBA is Ownable {
     
     function _auctionClose() internal {
         require(_auctionState == AuctionState.STARTED || _auctionState == AuctionState.EXTENDED ,"MUST be in STARTED or EXTENDED state");
-        require(block.timestamp >= _auctionObject.extendedEndDate_,"Auction end date still not reahced");
+        require(block.timestamp >= _auctionObject.extendedEndDate_,"End date still not reahced");
 
         // Set the winner for each tranche and enable withdraw
         for (uint i=0;i<=_auctionLots.length-1;i++) {
-            _auctionLots[i].winner_ =_tranchesPerLot[i][_auctionLots[i].lastTrancheId_ -1].trancheBidder_;            
+            _auctionLots[i].winner_ =_tranchesPerLot[i][_auctionLots[i].lastTrancheId_ -1].trancheBidder_;
+            _validBidders[_auctionLots[i].winner_].lotWinner_ = true;
+            emit evt_lotWinner(block.timestamp, i+1,_auctionLots[i].winner_);
         }
         // Change auction state to CLOSED
         _auctionState = AuctionState.ENDED;
+        // Enable bidders to withdraw JUSTokens
+        for (uint i=0; i<=_bidderList.length-1;i++) {
+            if ( _validBidders[_bidderList[i]].preserveLastBid_ == false && _validBidders[_bidderList[i]].lotWinner_ == false) {                
+                _enableWithDraw(_bidderList[i]);
+            }
+        }
         // Emit close event
         emit evt_auctionClosed(block.timestamp, _auctionObject.auctionCode_);        
     }
+    function _enableWithDraw( address _bidderAddress) internal {
+        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"MUST be in ENDED or CANCELED ti withdraw founds");
+        require(_validBidders[_bidderAddress].guaranteeDeposit_ > 0, "Bidder NOT confirmed or already has withdrawed");  
+        require(_validBidders[_bidderAddress].preserveLastBid_ == true, "Cannot withdraw");
+        require(_token.balanceOf(address(this)) >= _validBidders[_bidderAddress].guaranteeDeposit_,"Not enough founds");
+
+        _token.approve(_bidderAddress,_auctionObject.guaranteeDeposit_);
+        _validBidders[_bidderAddress].guaranteeDeposit_ = 0;
+        emit evt_bidderEnabledToWithDraw(block.timestamp, _bidderAddress);
+    }
+
 }
