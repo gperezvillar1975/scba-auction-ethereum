@@ -445,11 +445,11 @@ contract AuctionsSCBA is Ownable {
         // Emit close event
         emit evt_auctionClosed(block.timestamp, _auctionObject.auctionCode_);        
     }
+    
     function _enableWithDraw( address _bidderAddress) internal {
-        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"MUST be in ENDED or CANCELED ti withdraw founds");
-        require(_validBidders[_bidderAddress].guaranteeDeposit_ > 0, "Bidder NOT confirmed or already has withdrawed");  
-        require(_validBidders[_bidderAddress].preserveLastBid_ == true, "Cannot withdraw");
-        require(_token.balanceOf(address(this)) >= _validBidders[_bidderAddress].guaranteeDeposit_,"Not enough founds");
+        require(_auctionState == AuctionState.CANCELED || _auctionState == AuctionState.ENDED ,"MUST be in ENDED or CANCELED state");
+        require(_validBidders[_bidderAddress].guaranteeDeposit_ > 0, "Bidder NOT confirmed");  
+        require(_token.balanceOf(address(this)) >= _validBidders[_bidderAddress].guaranteeDeposit_,"No founds");
 
         _token.approve(_bidderAddress,_auctionObject.guaranteeDeposit_);
         _validBidders[_bidderAddress].guaranteeDeposit_ = 0;
