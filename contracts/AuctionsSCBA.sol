@@ -16,10 +16,10 @@ contract AuctionsSCBA is Ownable {
     
     // Events
 
-    event evt_bidderConfirmedInscription(address indexed sender, string message);
+    event evt_bidderConfirmedInscription(uint timeStamp, address _bidder);
     event evt_auctionStart(uint timeStamp, string auctionID);
     event evt_auctionCanceled(uint timeStamp, string auctionID, string cause);
-    event evt_maximunSecretBidBeaten(uint timeStamp, address beatenBidder);
+    event evt_maximunSecretBidBeaten(uint timeStamp, address beatenBidder, uint lotid);
     event evt_bidConfirmed(uint timeStamp, uint lotId, uint trancheId, address _bidder);
     event evt_auctionLotExtended(uint timeStamp, uint lotId, uint newEndDate);
     event evt_auctionClosed(uint timeStamp, string auctionID);
@@ -293,7 +293,7 @@ contract AuctionsSCBA is Ownable {
         }
         _bidderList.push(_bidderAddress);
 
-        emit evt_bidderConfirmedInscription(_bidderAddress,"Confirmed inscription.");
+        emit evt_bidderConfirmedInscription(block.timestamp, _bidderAddress);
     }
 
     function _setAuctionStart() internal  {
@@ -363,11 +363,11 @@ contract AuctionsSCBA is Ownable {
                             }
                         }
                     } else {
-                        if (_validBidders[_bidderList[i]].lotSecretBid_[x] >= _auctionLots[x].actualTrancheId_ &&
-                            _bidderLotMSBBeaten[_bidderList[i]][_auctionLots[x].actualTrancheId_] == false) {
+                        if (_validBidders[_bidderList[i]].lotSecretBid_[x] < _auctionLots[x].actualTrancheId_ &&
+                            _bidderLotMSBBeaten[_bidderList[i]][x] == false) {
                             //Bidder's maximun secret bid has been beaten                            
-                            _bidderLotMSBBeaten[_bidderList[i]][_auctionLots[x].actualTrancheId_] = true;
-                            emit evt_maximunSecretBidBeaten(block.timestamp, _bidderList[i]);
+                            _bidderLotMSBBeaten[_bidderList[i]][x] = true;
+                            emit evt_maximunSecretBidBeaten(block.timestamp, _bidderList[i], x+1);
                         }
                     }
                 }

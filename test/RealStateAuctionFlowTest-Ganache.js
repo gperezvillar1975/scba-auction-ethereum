@@ -14,6 +14,7 @@ contract('auctionContract', (accounts) => {
     beforeEach('should setup the contract instance', async () => {
         instance = await auctionContract.deployed();
         token = await jusContract.deployed();
+        console.log(instance.address)
     });
     it("Transfer JUSTokens to bidders", async ()=> {    
       await token.transfer.sendTransaction(accounts[1],web3.utils.toWei(web3.utils.toBN(1000)),{from : accounts[0]});
