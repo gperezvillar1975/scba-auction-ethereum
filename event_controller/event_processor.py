@@ -1,5 +1,7 @@
 # define function to handle events and print to the console
 from datetime import datetime
+import asyncio
+
 def handle_event(event):    
     if (event['event'] == 'evt_bidderConfirmedInscription'):
         print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Confirmed Inscription Bidder: ' + event['args']['_bidder'])
@@ -14,3 +16,12 @@ def handle_event(event):
     elif (event['event'] == 'evt_auctionLotExtended'):
         print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Lot ' + str(event['args']['lotId']) + ' end date extended. New end date: ' + str(datetime.fromtimestamp((event['args']['newEndDate']))))
     #print(Web3.toJSON(event))
+
+async def log_loop(event_filter, poll_interval):
+    print('Listening events...')
+    while True:
+        for evt in event_filter:
+            for single_event in evt.get_new_entries():
+                handle_event(single_event)
+
+        await asyncio.sleep(poll_interval)
