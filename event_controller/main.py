@@ -11,7 +11,7 @@ import contract_functions
 ganache_url = 'http://10.10.12.40:8545'
 web3 = Web3(Web3.HTTPProvider(ganache_url))
 # auction contract address and abi
-auction_contract = contract_functions.get_auction_contract
+auction_contract = contract_functions.get_auction_contract()
 auction_abi = './abi/AuctionsSCBA.json'
 
 # Websocket connections lists
