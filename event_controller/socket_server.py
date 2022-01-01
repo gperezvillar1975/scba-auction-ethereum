@@ -1,12 +1,24 @@
 import json
 import asyncio
 from web3 import Web3
-import secrets
-
 import websockets
 import contract_functions
+from global_defs import JOIN
 
-from event_controller.main import JOIN, WATCH
+async def replay_bids(websocket):
+    pass
+
+async def replay_events(websocket):
+    pass
+
+async def receive_bids(websocket):
+    pass
+
+async def broadcast_event(message, auction_contract):
+    bidders,connected = JOIN[auction_contract]
+    if connected:
+        for socket in connected:
+            await socket.send(Web3.toJSON(message))
 
 async def error(websocket, message):
     #Send an error message.
@@ -17,33 +29,41 @@ async def error(websocket, message):
     await websocket.send(json.dumps(event))
 
 async def join_auction(websocket,event):
-    bidder = event["bidder"]
-    connected = {websocket}
     auction = await contract_functions.get_auction_contract(event["auction"])
+    bidder = event["bidder"]     
+
 
     if auction:
         # Verify if bidder is inscripted
-        if await contract_functions.bidder_confirmed(bidder):
-            join_key = secrets.token_urlsafe(12)
-            JOIN[join_key] = auction,bidder,connected
+        if contract_functions.bidder_confirmed(event["auction"], bidder):
+            if not auction in JOIN:       
+                connected={websocket}
+                bidders = {bidder}
+                JOIN[auction] = bidders,connected
+                print("Connecting bidder " + bidder + " to auction " + auction)
+            else:
+                if not any(bidder in sublist for sublist in JOIN[auction]):
+                    bidders,connected = JOIN[auction]
+                    bidders.add(bidder)
+                    connected.add(websocket)                    
             ret_event = {
                 "type" : "join",
-                "status" : "join",
-                "data" : "{key: " + join_key + "}"
-            }
-        else:
-            watch_key = secrets.token_urlsafe(12)
-            WATCH[watch_key] = auction,bidder,connected            
-            ret_event = {
-                "type" : "join",
-                "status" : "watch",
+                "status" : "ok",
                 "data" : ""
             }
+        else:
+            await error(websocket,'Bidder not confirmed')        
+
         try:
-            await websocket.send(json.dumps(event))
+            print("Joining bidder")            
+            await websocket.send(json.dumps(ret_event))
+            await websocket.wait_closed()
+            #await replay_bids(websocket)
+            #await replay_events(websocket)
+            #await receive_bids(websocket)
+
         finally:
-            del JOIN[join_key]
-            del WATCH[watch_key]
+            connected.remove(websocket)
     else:
         await error(websocket,'Auction not found')
 
@@ -51,15 +71,10 @@ async def handler(websocket,path):
     # Receive and parse the "init" event from the UI.
     # events: 
     # {type: join, auction: <auction code>, bidder: <bidder_address>}
-    # {type: watch, auction: <auction code>}
+
 
     message = await websocket.recv()
     event = json.loads(message)
     
     if event["type"] == "join":
         await join_auction(websocket,event)
-    elif event["type"] == "watch":
-        pass
-
-    async for message in websocket:
-        await websocket.send(message)

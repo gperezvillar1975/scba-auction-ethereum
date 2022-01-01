@@ -1,0 +1,2 @@
+AUCTIONS = {}
+JOIN = {}
