@@ -3,22 +3,27 @@ import asyncio
 from web3 import Web3
 import websockets
 import contract_functions
-from global_defs import JOIN
+from global_defs import AUCTIONS, JOIN
 
 async def replay_bids(websocket):
     pass
 
-async def replay_events(websocket):
-    pass
+async def replay_events(auction,websocket):
+    try:
+        auction_events = AUCTIONS[auction]
+        for evt in auction_events:
+            await websocket.send(Web3.toJSON(evt))
+    except:
+        await error(websocket,'No events available')
 
 async def receive_bids(websocket):
     pass
 
-async def broadcast_event(message, auction_contract):
+async def broadcast_event(json_message, auction_contract):
     bidders,connected = JOIN[auction_contract]
     if connected:
         for socket in connected:
-            await socket.send(Web3.toJSON(message))
+            await socket.send(json_message)
 
 async def error(websocket, message):
     #Send an error message.
@@ -35,7 +40,8 @@ async def join_auction(websocket,event):
 
     if auction:
         # Verify if bidder is inscripted
-        if contract_functions.bidder_confirmed(event["auction"], bidder):
+        is_confirmed = await contract_functions.bidder_confirmed(event["auction"], bidder)
+        if is_confirmed :
             if not auction in JOIN:       
                 connected={websocket}
                 bidders = {bidder}
@@ -57,14 +63,15 @@ async def join_auction(websocket,event):
         try:
             print("Joining bidder")            
             await websocket.send(json.dumps(ret_event))
+            await replay_events(auction,websocket)
             await websocket.wait_closed()
             #await replay_bids(websocket)
-            #await replay_events(websocket)
             #await receive_bids(websocket)
-
         finally:
             connected.remove(websocket)
+            print("Bidder " + bidder + " leaving...")
     else:
+        bidders,connected = JOIN[auction]
         await error(websocket,'Auction not found')
 
 async def handler(websocket,path):

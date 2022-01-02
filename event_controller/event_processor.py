@@ -7,29 +7,31 @@ from  contract_functions import get_auction_contract
 from global_defs import AUCTIONS
 from socket_server import broadcast_event
 
-async def process_auctionStart(event):
-    auction_code = event['args']['auctionID']
-    auction_contract = await get_auction_contract(auction_code)
 
+async def process_auctionEvent(event):
+    auction_contract = event['address']
     if not auction_contract in AUCTIONS:
         auction_events = {event}
-        AUCTIONS[auction_contract] = auction_events
-        await broadcast_event(event,auction_contract)
+        AUCTIONS[auction_contract] = auction_events        
+    else:
+        auction_events = AUCTIONS[auction_contract]
+        auction_events.add(event)        
+
+    await broadcast_event(Web3.toJSON(event),auction_contract)
 
 async def handle_event(event):    
     if (event['event'] == 'evt_bidderConfirmedInscription'):
-        print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Confirmed Inscription Bidder: ' + event['args']['_bidder'])
-    elif (event['event'] == 'evt_auctionStart'):
-        print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Started auction: ' + event['args']['auctionID'])
-        await process_auctionStart(event)
+        await process_auctionEvent(event)
+    elif (event['event'] == 'evt_auctionStart'):        
+        await process_auctionEvent(event)
     elif (event['event'] == 'evt_bidConfirmed'):
-        print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Bid confirmed for lot: ' + str(event['args']['lotId']) + ' - Tranche: ' + str(event['args']['trancheId']) + ' - Bidder: ' +  event['args']['_bidder'])
-    elif (event['event'] == 'evt_auctionClosed'):
-        print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Closed auction: ' + event['args']['auctionID'])
+        await process_auctionEvent(event)
+    elif (event['event'] == 'evt_auctionClosed'):        
+        await process_auctionEvent(event)
     elif (event['event'] == 'evt_maximunSecretBidBeaten'):
-        print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Maximun Secret Bid beaten for bidder: ' + event['args']['beatenBidder'] + '- Lot: ' + str(event['args']['lotId']))
+        await process_auctionEvent(event)
     elif (event['event'] == 'evt_auctionLotExtended'):
-        print(str(datetime.fromtimestamp((event['args']['timeStamp']))) + ' - ' + 'Lot ' + str(event['args']['lotId']) + ' end date extended. New end date: ' + str(datetime.fromtimestamp((event['args']['newEndDate']))))
+        await process_auctionEvent(event)
     #print(Web3.toJSON(event))
 
 async def log_loop(poll_interval):
