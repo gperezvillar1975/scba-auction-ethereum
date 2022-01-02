@@ -40,7 +40,7 @@ async def join_auction(websocket,event):
 
     if auction:
         # Verify if bidder is inscripted
-        is_confirmed = await contract_functions.bidder_confirmed(event["auction"], bidder)
+        is_confirmed = await contract_functions.bidder_confirmed(auction, bidder)
         if is_confirmed :
             if not auction in JOIN:       
                 connected={websocket}
@@ -78,7 +78,6 @@ async def handler(websocket,path):
     # Receive and parse the "init" event from the UI.
     # events: 
     # {type: join, auction: <auction code>, bidder: <bidder_address>}
-
 
     message = await websocket.recv()
     event = json.loads(message)

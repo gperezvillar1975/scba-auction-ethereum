@@ -4,9 +4,11 @@ from  event_processor import log_loop
 from  socket_server import handler
 import websockets
 import global_defs
+from contract_functions import load_auctions
 
 global_defs.JOIN = {}
 global_defs.AUCTIONS = {}
+load_auctions()
 
 def main():
     loop = asyncio.get_event_loop()

@@ -4,7 +4,7 @@ import asyncio
 import json
 from web3 import Web3
 from  contract_functions import get_auction_contract
-from global_defs import AUCTIONS
+from global_defs import AUCTIONS,web3,auction_abi,abi_contract
 from socket_server import broadcast_event
 
 
@@ -36,15 +36,8 @@ async def handle_event(event):
 
 async def log_loop(poll_interval):
 
-    # add your blockchain connection information
-    ganache_url = 'http://10.10.12.40:8545'
-    web3 = Web3(Web3.HTTPProvider(ganache_url))
-    # auction contract address and abi
     auction_contract = await get_auction_contract("MP151")
-    auction_abi = './abi/AuctionsSCBA.json'
-    abi = open(auction_abi)
-    abi_contract=json.load(abi)
-    abi.close()
+  
 
     contract = web3.eth.contract(address=auction_contract, abi=abi_contract['abi'])
     event_filter = [evt.createFilter(fromBlock='latest') for evt in contract.events]
