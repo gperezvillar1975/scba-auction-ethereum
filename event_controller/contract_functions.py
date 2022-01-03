@@ -3,14 +3,14 @@ import asyncio
 from global_defs import AUCTION_DETAILS, AUCTIONS,LOT_DETAIL,web3,auction_abi,abi_contract
 
 async def get_auction_contract(auction_code):
-    return "0x9bA0642520c10Ac6544358198AC4c454e84Cc86d"
+    return "0x1B7E4585a8A7ff8f5e3F2e330B07246835856165"
 
 async def bidder_confirmed(auction_address, bidder_address):
     
     return True
 
 def load_auctions():
-    load_auction_data("0x9bA0642520c10Ac6544358198AC4c454e84Cc86d")
+    load_auction_data("0x1B7E4585a8A7ff8f5e3F2e330B07246835856165")
     return
 
 def load_auction_data(auction_address):
@@ -31,6 +31,6 @@ def load_auction_data(auction_address):
             nl.lastTrancheId = contract.functions.getLastTranche(x+1).call()
             nl.extensionsCount = contract.functions.getLotExtensionCount(x+1).call()
             nl.extendedEndDate = contract.functions.getLotEndDate(x+1).call()
-            na.lotDetail.add(nl)
-            
-    return ""
+            na.lotDetail.append(nl)
+        
+        AUCTIONS[auction_address] = na

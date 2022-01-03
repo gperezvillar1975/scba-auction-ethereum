@@ -10,8 +10,8 @@ async def replay_bids(websocket):
 
 async def replay_events(auction,websocket):
     try:
-        auction_events = AUCTIONS[auction]
-        for evt in auction_events:
+        auction_object = AUCTIONS[auction]        
+        for evt in auction_object.events:
             await websocket.send(Web3.toJSON(evt))
     except:
         await error(websocket,'No events available')

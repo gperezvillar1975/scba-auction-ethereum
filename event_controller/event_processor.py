@@ -10,12 +10,8 @@ from socket_server import broadcast_event
 
 async def process_auctionEvent(event):
     auction_contract = event['address']
-    if not auction_contract in AUCTIONS:
-        auction_events = {event}
-        AUCTIONS[auction_contract] = auction_events        
-    else:
-        auction_events = AUCTIONS[auction_contract]
-        auction_events.add(event)        
+    auction_object = AUCTIONS[auction_contract]
+    auction_object.events.append(event)        
 
     await broadcast_event(Web3.toJSON(event),auction_contract)
 
