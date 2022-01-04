@@ -3,7 +3,7 @@ from datetime import datetime
 import asyncio
 import json
 from web3 import Web3
-from  contract_functions import get_auction_contract
+from  contract_functions import get_auction_contract,load_auction_data
 from global_defs import AUCTIONS,web3,auction_abi,abi_contract
 from socket_server import broadcast_event
 
@@ -16,7 +16,13 @@ async def process_auctionEvent(event):
     await broadcast_event(Web3.toJSON(event),auction_contract)
 
 async def handle_event(event):    
-    if (event['event'] == 'evt_bidderConfirmedInscription'):
+    if (event['event'] == 'evt_AuctionInit'):
+        load_auction_data(event['address'])
+        await process_auctionEvent(event)
+    if (event['event'] == 'evt_LotInit'):
+        load_auction_data(event['address'])
+        await process_auctionEvent(event)
+    if (event['event'] == 'evt_bidderInscription'):
         await process_auctionEvent(event)
     elif (event['event'] == 'evt_auctionStart'):        
         await process_auctionEvent(event)
@@ -36,7 +42,7 @@ async def log_loop(poll_interval):
   
 
     contract = web3.eth.contract(address=auction_contract, abi=abi_contract['abi'])
-    event_filter = [evt.createFilter(fromBlock='latest') for evt in contract.events]
+    event_filter = [evt.createFilter(fromBlock='latest',toBlock="pending") for evt in contract.events]
 
     print('Listening events...')
     while True:

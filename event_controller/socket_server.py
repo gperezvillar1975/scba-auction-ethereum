@@ -20,10 +20,11 @@ async def receive_bids(websocket):
     pass
 
 async def broadcast_event(json_message, auction_contract):
-    bidders,connected = JOIN[auction_contract]
-    if connected:
-        for socket in connected:
-            await socket.send(json_message)
+    if auction_contract in JOIN:
+        bidders,connected = JOIN[auction_contract]
+        if connected:
+            for socket in connected:
+                await socket.send(json_message)
 
 async def error(websocket, message):
     #Send an error message.
@@ -65,7 +66,6 @@ async def join_auction(websocket,event):
             await websocket.send(json.dumps(ret_event))
             await replay_events(auction,websocket)
             await websocket.wait_closed()
-            #await replay_bids(websocket)
             #await receive_bids(websocket)
         finally:
             connected.remove(websocket)
@@ -77,7 +77,7 @@ async def join_auction(websocket,event):
 async def handler(websocket,path):
     # Receive and parse the "init" event from the UI.
     # events: 
-    # {type: join, auction: <auction code>, bidder: <bidder_address>}
+    # {"type": "join", "auction": "MP151", "bidder": "0x1f23BA314d9944805a1C5B14600ABB98AEA469EB"}
 
     message = await websocket.recv()
     event = json.loads(message)
