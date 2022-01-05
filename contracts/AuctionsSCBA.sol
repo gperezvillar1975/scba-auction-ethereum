@@ -16,7 +16,9 @@ contract AuctionsSCBA is Ownable {
     
     // Events
 
-    event evt_bidderConfirmedInscription(uint timeStamp, address _bidder);
+    event evt_bidderInscription(uint timeStamp, address _bidder);
+    event evt_AuctionInit();
+    event evt_LotInit();
     event evt_auctionStart(uint timeStamp, string auctionID);
     event evt_auctionCanceled(uint timeStamp, string auctionID, string cause);
     event evt_maximunSecretBidBeaten(uint timeStamp, address beatenBidder, uint lotid);
@@ -103,6 +105,7 @@ contract AuctionsSCBA is Ownable {
         _auctionObject.startDate_ = __startDate;
         _auctionObject.endDate_ = __endDate;
         _auctionObject.extendedEndDate_ = __endDate;
+        emit evt_AuctionInit();
     }
 
     function auctionAddLot(uint __baseValue) external onlyOwner {
@@ -120,6 +123,7 @@ contract AuctionsSCBA is Ownable {
         tmpLot.baseValue_ = __baseValue;
         tmpLot.lastTrancheId_ = 0;
         _auctionLots.push(tmpLot); // Add lot to lot array
+        emit evt_LotInit();
     }  
 
     function confirmBidderInscription(bool _preserveGuranteeDeposit) external  {
@@ -273,7 +277,7 @@ contract AuctionsSCBA is Ownable {
         return _baseValue + ((_baseValue * _factor) / 100);
     }
 
-    function _confirmBidderInscription(address _bidderAddress, uint _depositAmount, bool _preserveGuaranteeDeposit) internal     {
+    function _confirmBidderInscription(address _bidderAddress, uint _depositAmount, bool _preserveGuaranteeDeposit) internal  {
         Bidder memory _tmpBidder;
         uint _LotsLength = _auctionLots.length;
         require(_auctionState == AuctionState.LOT,"Must be at least one lot defined."); 
@@ -293,7 +297,7 @@ contract AuctionsSCBA is Ownable {
         }
         _bidderList.push(_bidderAddress);
 
-        emit evt_bidderConfirmedInscription(block.timestamp, _bidderAddress);
+        emit evt_bidderInscription(block.timestamp, _bidderAddress);
     }
 
     function _setAuctionStart() internal  {

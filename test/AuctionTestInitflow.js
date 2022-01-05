@@ -130,4 +130,5 @@ contract('auctionContract', (accounts) => {
         let retValue = await instance.getActualTranche(1);
         assert(web3.utils.BN(retValue[0]),9);
       });
+
   });
