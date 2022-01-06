@@ -27,3 +27,11 @@ def get_routes(app):
     def auction_post():
         res = auction_methods.auction_post(request.get_data())
         return res
+    @app.route("/auction/auction", methods=["GET"])
+    def auction_get():
+        res = auction_methods.auction_get(request.args.get('code'))
+        return res
+    @app.route("/auction/auction", methods=["DELETE"])
+    def auction_delete():
+        res = auction_methods.auction_delete(request.args.get('code'))
+        return res
