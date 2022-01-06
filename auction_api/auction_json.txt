@@ -1,0 +1,13 @@
+{
+   "code":"MP151",
+   "auctionClass":"0",
+   "guaranteeDeposit":"150000",
+   "startDate":"1641474000",
+   "endDate":"1641477600",
+   "auctionLots":[
+      {
+         "description":"Lote de prueba inmueble",
+         "baseValue":"300.000"
+      }
+   ]
+}

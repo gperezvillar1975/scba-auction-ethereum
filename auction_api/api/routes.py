@@ -1,6 +1,10 @@
 from flask import Response, json, request, abort, jsonify, session
 from pymongo import MongoClient
 import pprint
+from werkzeug.wrappers import response
+from utils import globales
+import api.auction_methods as auction_methods
+
 def get_routes(app):
 ###
 # Rutas definidas para status, importa las funciones de api.status (/api/status.py)
@@ -12,11 +16,14 @@ def get_routes(app):
     
     @app.route("/status/ready", methods=["GET"])
     def get_ready():
-        conn_str = "mongodb://admin:linsm08@mongodb.bus-justicia.org.ar:27017"        
         try:
-            mg=MongoClient(conn_str)
+            mg=MongoClient(globales.mongodb_uri)
             mg.admin.command("ping")
             return jsonify("DB Connection OK .... Ready")
         except:
             return jsonify("DB Connection FAIL .... NOT Ready")
 
+    @app.route("/auction/auction", methods=["POST"])
+    def auction_post():
+        res = auction_methods.auction_post(request.get_data())
+        return res
