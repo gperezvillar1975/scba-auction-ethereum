@@ -4,10 +4,12 @@ import pprint
 from werkzeug.wrappers import response
 from utils import globales
 import api.auction_methods as auction_methods
+import api.bidder_methods as bidder_methods
+import api.bidder_admin as bidder_admin
 
 def get_routes(app):
 ###
-# Rutas definidas para status, importa las funciones de api.status (/api/status.py)
+# STATUS
 ###
     @app.route("/status/ping", methods=["GET"])
     def get_ping():
@@ -22,6 +24,9 @@ def get_routes(app):
             return jsonify("DB Connection OK .... Ready")
         except:
             return jsonify("DB Connection FAIL .... NOT Ready")
+###
+# AUCTION
+###
 
     @app.route("/auction/auction", methods=["POST"])
     def auction_post():
@@ -35,3 +40,22 @@ def get_routes(app):
     def auction_delete():
         res = auction_methods.auction_delete(request.args.get('code'))
         return res
+###
+# BIDDER
+###
+
+    @app.route("/bidder/inscription_request", methods=["POST"])
+    def bidder_request():
+        res = bidder_methods.bidder_request(request.get_data())
+        return res
+
+###
+# BIDDER ADMIN
+###
+
+    @app.route("/bidder_admin/requests", methods=["GET"])
+    def requests_by_status():
+        res = bidder_admin.get_requests_by_status(request.args.get('status'))
+        return res
+
+    

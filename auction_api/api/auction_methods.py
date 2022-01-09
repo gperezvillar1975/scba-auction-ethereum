@@ -5,11 +5,14 @@ from jsonschema import validate
 from werkzeug.wrappers import response
 from utils import globales
 import pymongo
+import time
 
 def auction_post(data):
     auction_data = json.loads(data)
     try:
         validate(instance=auction_data,schema=globales.auction_schema)       
+        if auction_data["startDate"] < time.time():
+            return Response("Auction date must be greater than Now",400)
         mongo_cli = pymongo.MongoClient(globales.mongodb_uri)
         db = mongo_cli[globales.mongodb_db]
         col = db['auctions']
@@ -18,7 +21,7 @@ def auction_post(data):
         op = col.insert_one(auction_data)
         return Response(str(op.inserted_id),200)
     except:
-        return Response("BAD FORMAT",401)
+        return Response("BAD FORMAT",400)
 
 def auction_get(codigo):
     mongo_cli = pymongo.MongoClient(globales.mongodb_uri)

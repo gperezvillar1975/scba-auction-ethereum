@@ -28,3 +28,18 @@ auction_schema = {
     },
     "requirted" : ["code","auctionClass","guaranteeDeposit","startDate","endDate","auctionLots"]
     }
+bidder_schema = {
+    "type" : "object",
+    "properties" : {
+        "id_number" : {"type" : "string"},
+        "name" : {"type" : "string"},
+        "surname" : {"type" : "string"},
+        "email" : {"type" : "string"},
+        "username" : {"type" : "string"},
+        "pass_sha256" : {"type" : "string"},
+        "wallet_address" : {"type" : "string"},
+        "wallet_pk" : {"type" : "string"},
+        "status" : {"type" : "number"}
+    },
+    "requirted" : ["id_number","email","username"]
+    }
